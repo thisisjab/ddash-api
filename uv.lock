@@ -28,6 +28,18 @@ wheels = [
 ]
 
 [[package]]
+name = "asgi-correlation-id"
+version = "4.3.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "starlette" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/be/81/15a920a166d38ce0685de33f3c5e64b86a3c112c7d646ed46d8ec1cb4047/asgi_correlation_id-4.3.3.tar.gz", hash = "sha256:25d89b52f3d32c0f3b4915a9fc38d9cffc7395960d05910bdce5c13023dc237b", size = 20052 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fe/e1/aa53fea4e367c1ec0e69cb78c234dec4ec50d80ce02279e1ec647dea1a47/asgi_correlation_id-4.3.3-py3-none-any.whl", hash = "sha256:62ba38c359aa004c1c3e2b8e0cdf0e8ad4aa5a93864eaadc46e77d5c142a206a", size = 15253 },
+]
+
+[[package]]
 name = "certifi"
 version = "2024.8.30"
 source = { registry = "https://pypi.org/simple" }
@@ -71,8 +83,10 @@ name = "ddash"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "asgi-correlation-id" },
     { name = "fastapi", extra = ["standard"] },
     { name = "pydantic-settings" },
+    { name = "python-json-logger" },
 ]
 
 [package.dev-dependencies]
@@ -83,8 +97,10 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "asgi-correlation-id", specifier = ">=4.3.3" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.0" },
     { name = "pydantic-settings", specifier = ">=2.5.2" },
+    { name = "python-json-logger", specifier = ">=2.0.7" },
 ]
 
 [package.metadata.requires-dev]
@@ -409,6 +425,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/bc/57/e84d88dfe0aec03b7a2d4327012c1627ab5f03652216c63d49846d7a6c58/python-dotenv-1.0.1.tar.gz", hash = "sha256:e324ee90a023d808f1959c46bcbc04446a10ced277783dc6ee09987c37ec10ca", size = 39115 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6a/3e/b68c118422ec867fa7ab88444e1274aa40681c606d59ac27de5a5588f082/python_dotenv-1.0.1-py3-none-any.whl", hash = "sha256:f7b63ef50f1b690dddf550d03497b66d609393b40b564ed0d674909a68ebf16a", size = 19863 },
+]
+
+[[package]]
+name = "python-json-logger"
+version = "2.0.7"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/4f/da/95963cebfc578dabd323d7263958dfb68898617912bb09327dd30e9c8d13/python-json-logger-2.0.7.tar.gz", hash = "sha256:23e7ec02d34237c5aa1e29a070193a4ea87583bb4e7f8fd06d3de8264c4b2e1c", size = 10508 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/35/a6/145655273568ee78a581e734cf35beb9e33a370b29c5d3c8fee3744de29f/python_json_logger-2.0.7-py3-none-any.whl", hash = "sha256:f380b826a991ebbe3de4d897aeec42760035ac760345e57b812938dc8b35e2bd", size = 8067 },
 ]
 
 [[package]]
