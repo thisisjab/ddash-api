@@ -9,6 +9,7 @@ dependencies = [
     "fastapi[standard]>=0.115.0",
     "pydantic-settings>=2.5.2",
     "python-json-logger>=2.0.7",
+    "sqlalchemy[postgresql-asyncpg]>=2.0.35",
 ]
 
 [tool.uv]
