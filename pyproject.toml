@@ -4,4 +4,6 @@ version = "0.1.0"
 description = "API for DDash project."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "fastapi[standard]>=0.115.0",
+]
