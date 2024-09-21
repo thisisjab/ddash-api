@@ -5,6 +5,7 @@ description = "API for DDash project."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.13.2",
     "asgi-correlation-id>=4.3.3",
     "fastapi[standard]>=0.115.0",
     "pydantic-settings>=2.5.2",
