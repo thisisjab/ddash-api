@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 
 
@@ -8,12 +8,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 class Settings(BaseSettings):
     """Global settings and configurations."""
 
+    model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
+
     DEBUG: bool = False
 
     # FastAPI app settings
     APP_TITLE: str = "DDash"
     APP_DESCRIPTION: str = "API for DDash"
     APP_VERSION: str = "0.1.0"
+
+    DATABASE_ECHO: bool = False
+    DATABASE_MAX_OVERFLOW: int = 1
+    DATABASE_POOL_PRE_PING: bool = True
+    DATABASE_POOL_SIZE: int = 5
+    DATABASE_URL: str
 
     # Logging
     LOGGING_CORRELATION_ID_LENGTH: int = 8
@@ -26,4 +34,4 @@ class Settings(BaseSettings):
     LOGGING_USE_DEFAULT_HANDLERS: bool = True
 
 
-settings = Settings(_env_file=BASE_DIR / ".env")
+settings = Settings()
