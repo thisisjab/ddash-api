@@ -4,6 +4,7 @@ from api.config import settings
 from api.logging import configure_logging
 from asgi_correlation_id import CorrelationIdMiddleware
 from api.projects.routes import router as projects_router
+from api.users.routes import router as users_router
 
 
 @asynccontextmanager
@@ -23,4 +24,5 @@ app = FastAPI(
 app.add_middleware(CorrelationIdMiddleware)
 
 
+app.include_router(users_router)
 app.include_router(projects_router)
