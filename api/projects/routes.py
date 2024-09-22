@@ -13,4 +13,4 @@ router = APIRouter(prefix="/projects", tags=["Projects"])
 async def create_project(
     data: ProjectIn, service: Annotated[ProjectService, Depends()]
 ):
-    return await service.create_single_project(data)
+    return await service.create_project(data)
