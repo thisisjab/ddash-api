@@ -32,3 +32,10 @@ services:
       - "5432:5432"
     volumes:
       - ./volumes/postgres/:/var/lib/postgres/data/
+
+  adminer:
+    image: adminer:4.8.1-standalone
+    restart: on-failure
+    ports:
+      - 8080:8080
+    container_name: ddash_adminer
