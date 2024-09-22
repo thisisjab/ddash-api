@@ -183,6 +183,7 @@ dependencies = [
     { name = "argon2-cffi" },
     { name = "asgi-correlation-id" },
     { name = "fastapi", extra = ["standard"] },
+    { name = "pydantic", extra = ["email"] },
     { name = "pydantic-settings" },
     { name = "python-json-logger" },
     { name = "sqlalchemy", extra = ["postgresql-asyncpg"] },
@@ -200,6 +201,7 @@ requires-dist = [
     { name = "argon2-cffi", specifier = ">=23.1.0" },
     { name = "asgi-correlation-id", specifier = ">=4.3.3" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.0" },
+    { name = "pydantic", extras = ["email"], specifier = ">=2.9.2" },
     { name = "pydantic-settings", specifier = ">=2.5.2" },
     { name = "python-json-logger", specifier = ">=2.0.7" },
     { name = "sqlalchemy", extras = ["postgresql-asyncpg"], specifier = ">=2.0.35" },
@@ -515,6 +517,11 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a9/b7/d9e3f12af310e1120c21603644a1cd86f59060e040ec5c3a80b8f05fae30/pydantic-2.9.2.tar.gz", hash = "sha256:d155cef71265d1e9807ed1c32b4c8deec042a44a50a4188b25ac67ecd81a9c0f", size = 769917 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/df/e4/ba44652d562cbf0bf320e0f3810206149c8a4e99cdbf66da82e97ab53a15/pydantic-2.9.2-py3-none-any.whl", hash = "sha256:f048cec7b26778210e28a0459867920654d48e5e62db0958433636cde4254f12", size = 434928 },
+]
+
+[package.optional-dependencies]
+email = [
+    { name = "email-validator" },
 ]
 
 [[package]]
