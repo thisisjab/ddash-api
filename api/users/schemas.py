@@ -17,3 +17,12 @@ class UserIn(BaseModel):
 
 class UserOut(User):
     model_config = ConfigDict(from_attributes=True)
+
+
+class AccessTokenIn(BaseModel):
+    email: EmailStr
+    password: str = Field(exclude=True, min_length=5)
+
+
+class AccessTokenOut(BaseModel):
+    access: str
