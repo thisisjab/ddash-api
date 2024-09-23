@@ -38,6 +38,14 @@ class UserService:
 
             return UserOut.model_validate(user)
 
+    async def get_user_by_id(self, id_: str | UUID) -> User | None:
+        async with self.async_session.begin() as session:
+            result: ScalarResult = (
+                await session.execute(select(User).where(User.id == id_))
+            ).scalars()
+
+            return result.one_or_none()
+
     async def get_user_by_email(self, email: str) -> User | None:
         async with self.async_session.begin() as session:
             result: ScalarResult = (
@@ -79,6 +87,18 @@ class AuthenticationService:
             payload=payload, key=settings.ACCESS_TOKEN_SECRET_KEY, algorithm="HS256"
         )
 
+    def _get_user_id_from_access_token(self, token: str) -> str:
+        try:
+            decoded_token = jwt.decode(
+                token,
+                key=settings.ACCESS_TOKEN_SECRET_KEY,
+                algorithms=["HS256"],
+            )
+
+            return decoded_token.get("user_id", None)
+        except Exception:
+            return None
+
     async def generate_access_token_for_user(self, email: str, password: str) -> str:
         user: User = await self.user_service.get_user_by_email(email)
 
@@ -95,3 +115,11 @@ class AuthenticationService:
             )
 
         return self._create_access_token(user.id)
+
+    async def get_user_from_access_token(self, access_token: str) -> User | None:
+        user_id = self._get_user_id_from_access_token(access_token)
+
+        if not user_id:
+            return None
+
+        return await self.user_service.get_user_by_id(user_id)
