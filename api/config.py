@@ -22,7 +22,11 @@ class Settings(BaseSettings):
     DATABASE_MAX_OVERFLOW: int = 1
     DATABASE_POOL_PRE_PING: bool = True
     DATABASE_POOL_SIZE: int = 5
-    DATABASE_URL: str
+    DATABASE_USERNAME: str
+    DATABASE_PASSWORD: str
+    DATABASE_HOST: str
+    DATABASE_PORT: str
+    DATABASE_NAME: str
 
     # Logging
     LOGGING_CORRELATION_ID_LENGTH: int = 8

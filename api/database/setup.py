@@ -8,12 +8,21 @@ from api.config import settings
 
 logger = logging.getLogger(__name__)
 
+async_database_url_scheme = "postgresql+asyncpg://{}:{}@{}:{}/{}"
+sync_database_url_scheme = "postgresql://{}:{}@{}:{}/{}"
+
 async_engine = create_async_engine(
     echo=settings.DATABASE_ECHO,
     max_overflow=settings.DATABASE_MAX_OVERFLOW,
     pool_pre_ping=settings.DATABASE_POOL_PRE_PING,
     pool_size=settings.DATABASE_POOL_SIZE,
-    url=settings.DATABASE_URL,
+    url=async_database_url_scheme.format(
+        settings.DATABASE_USERNAME,
+        settings.DATABASE_PASSWORD,
+        settings.DATABASE_HOST,
+        settings.DATABASE_PORT,
+        settings.DATABASE_NAME,
+    ),
 )
 
 AsyncSessionLocal = async_sessionmaker(
