@@ -10,6 +10,7 @@ class Project(BaseModel):
     start_date: date | None
     finish_date: date | None
     deadline: date | None
+    creator_id: UUID | str
     created_at: datetime
     modified_at: datetime
 
