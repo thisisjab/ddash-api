@@ -2,7 +2,7 @@ from datetime import date
 from uuid import UUID
 from api.database.models import BaseDatabaseModel, TimestampedModelMixin
 from sqlalchemy.orm import mapped_column, Mapped
-from sqlalchemy import types, text
+from sqlalchemy import ForeignKey, types, text
 
 
 class Project(BaseDatabaseModel, TimestampedModelMixin):
@@ -14,6 +14,8 @@ class Project(BaseDatabaseModel, TimestampedModelMixin):
         init=False,
         server_default=text("gen_random_uuid()"),
     )
+
+    creator_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     title: Mapped[str] = mapped_column(types.String(75), nullable=False)
 
