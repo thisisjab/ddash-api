@@ -1,4 +1,5 @@
 from uuid import UUID
+
 from api.database.dependencies import AsyncSession
 from api.projects.models import Project
 from api.projects.schemas import ProjectIn, ProjectOut

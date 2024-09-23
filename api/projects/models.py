@@ -1,8 +1,10 @@
 from datetime import date
 from uuid import UUID
+
+from sqlalchemy import ForeignKey, text, types
+from sqlalchemy.orm import Mapped, mapped_column
+
 from api.database.models import BaseDatabaseModel, TimestampedModelMixin
-from sqlalchemy.orm import mapped_column, Mapped
-from sqlalchemy import ForeignKey, types, text
 
 
 class Project(BaseDatabaseModel, TimestampedModelMixin):

@@ -1,7 +1,9 @@
-from api.database.models import BaseDatabaseModel, TimestampedModelMixin
 from uuid import UUID
-from sqlalchemy.orm import mapped_column, Mapped
-from sqlalchemy import types, text
+
+from sqlalchemy import text, types
+from sqlalchemy.orm import Mapped, mapped_column
+
+from api.database.models import BaseDatabaseModel, TimestampedModelMixin
 
 
 class User(BaseDatabaseModel, TimestampedModelMixin):

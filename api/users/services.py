@@ -1,19 +1,19 @@
+import time
 from datetime import timedelta
 from typing import Annotated
 from uuid import UUID
-from argon2 import PasswordHasher
-import time
+
 import jwt
-from fastapi import Depends, status
-from fastapi import HTTPException
-from sqlalchemy.engine.result import ScalarResult
+from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-from sqlalchemy import select
+from fastapi import Depends, HTTPException, status
+from sqlalchemy import func, select
+from sqlalchemy.engine.result import ScalarResult
+
+from api.config import settings
 from api.database.dependencies import AsyncSession
 from api.users.models import User
 from api.users.schemas import UserIn, UserOut
-from api.config import settings
-from sqlalchemy import func
 
 
 class UserService:

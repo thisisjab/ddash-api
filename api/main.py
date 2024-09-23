@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
+
+from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI
+
 from api.config import settings
 from api.logging import configure_logging
-from asgi_correlation_id import CorrelationIdMiddleware
 from api.projects.routes import router as projects_router
 from api.users.routes import router as users_router
 

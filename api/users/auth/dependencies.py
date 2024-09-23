@@ -4,8 +4,8 @@ from fastapi import Depends, status
 from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.security.api_key import HTTPException
 
-from api.users.models import User
 from api.users.auth import JWTBearer
+from api.users.models import User
 from api.users.services import AuthenticationService
 
 jwt_bearer = JWTBearer()
