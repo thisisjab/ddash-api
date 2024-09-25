@@ -26,3 +26,8 @@ dev-dependencies = [
 
 [tool.ruff]
 lint.extend-select = ["I"]
+
+[tool.pytest.ini_options]
+pythonpath = [
+  ".", "src",
+]
