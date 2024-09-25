@@ -9,6 +9,7 @@ dependencies = [
     "argon2-cffi>=23.1.0",
     "asgi-correlation-id>=4.3.3",
     "fastapi[standard]>=0.115.0",
+    "psycopg2>=2.9.9",
     "pydantic-settings>=2.5.2",
     "pydantic[email]>=2.9.2",
     "pyjwt>=2.9.0",
