@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, status
 from fastapi.routing import APIRouter
 
 from api.projects.schemas import ProjectIn, ProjectOut
@@ -10,7 +10,7 @@ from api.users.auth.dependencies import AuthenticatedUser
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
 
-@router.post("", response_model=ProjectOut)
+@router.post("", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)
 async def create_project(
     data: ProjectIn,
     service: Annotated[ProjectService, Depends()],
