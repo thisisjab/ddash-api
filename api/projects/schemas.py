@@ -16,7 +16,7 @@ class Project(BaseModel):
     modified_at: datetime
 
 
-class ProjectIn(BaseModel):
+class ProjectRequest(BaseModel):
     title: str = Field(min_length=3, max_length=75)
     description: str | None
     start_date: date | None
@@ -31,5 +31,5 @@ class ProjectIn(BaseModel):
         return self
 
 
-class ProjectOut(Project):
+class ProjectResponse(Project):
     model_config = ConfigDict(from_attributes=True)
