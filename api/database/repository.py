@@ -42,9 +42,15 @@ class RepositoryBase:
 
     async def get(self, *filter_clauses: list[ClauseElement]):
         async with self.async_session.begin() as session:
-            query = select(self.model).filter_by(*filter_clauses)
+            query = select(self.model)
+
+            if len(filter_clauses) < 1:
+                raise Exception("Cannot use get without passing filter clauses.")
+
+            query = query.filter(*filter_clauses)
+
             result = await session.execute(query)
-            return result.scalars().first()
+            return result.scalars().one_or_none()
 
     async def create(self, obj):
         async with self.async_session.begin() as session:
