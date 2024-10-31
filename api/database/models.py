@@ -4,8 +4,6 @@ from sqlalchemy import MetaData, types
 from sqlalchemy.orm import DeclarativeBase, Mapped, MappedAsDataclass, mapped_column
 from sqlalchemy.sql import func
 
-from api.config import settings
-
 naming_convention = {
     "ix": "ix_%(column_0_label)s",  # index name
     "uq": "uq_%(table_name)s_%(column_0_name)s",  # unique constraint
@@ -15,9 +13,7 @@ naming_convention = {
 }
 
 
-metadata = MetaData(
-    naming_convention=naming_convention, schema=settings.DATABASE_SCHEMA
-)
+metadata = MetaData(naming_convention=naming_convention, schema="ddash")
 
 
 class BaseDatabaseModel(MappedAsDataclass, DeclarativeBase):

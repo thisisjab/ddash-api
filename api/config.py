@@ -27,7 +27,6 @@ class Settings(BaseSettings):
     DATABASE_HOST: str
     DATABASE_PORT: str
     DATABASE_NAME: str
-    DATABASE_SCHEMA: str | None = "ddash"
 
     # Logging
     LOGGING_CORRELATION_ID_LENGTH: int = 8
