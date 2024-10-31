@@ -7,54 +7,36 @@ import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from fastapi import Depends, HTTPException, status
-from sqlalchemy import func, select
-from sqlalchemy.engine.result import ScalarResult
+from sqlalchemy import func
 
 from api.config import settings
-from api.database.dependencies import AsyncSession
 from api.users.models import User
-from api.users.schemas import UserIn, UserOut
+from api.users.repository import UserRepository
+from api.users.schemas import UserRequest, UserResponse
 
 
 class UserService:
-    def __init__(self, session: AsyncSession):
-        self.async_session = session
+    def __init__(self, repository: Annotated[UserRepository, Depends()]):
+        self.repo = repository
         self._ph = PasswordHasher()
 
-    async def create_user(self, data: UserIn) -> UserOut:
-        async with self.async_session.begin() as session:
-            if await self.get_user_by_email(data.email):
-                raise HTTPException(
-                    detail="User already exists.",
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                )
+    async def create_user(self, data: UserRequest) -> UserResponse:
+        if await self.get_user_by_email(data.email):
+            raise HTTPException(
+                detail="User already exists.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
 
-            hashed_password = self._hash_password(data.password)
-            user = User(email=data.email, password=hashed_password)
-
-            session.add(user)
-            await session.flush()
-            await session.refresh(user)
-
-            return UserOut.model_validate(user)
+        hashed_password = self._hash_password(data.password)
+        user = User(email=data.email, password=hashed_password)
+        created_user = await self.repo.create(user)
+        return UserResponse.model_validate(created_user)
 
     async def get_user_by_id(self, id_: str | UUID) -> User | None:
-        async with self.async_session.begin() as session:
-            result: ScalarResult = (
-                await session.execute(select(User).where(User.id == id_))
-            ).scalars()
-
-            return result.one_or_none()
+        return await self.repo.get(User.id == id_)
 
     async def get_user_by_email(self, email: str) -> User | None:
-        async with self.async_session.begin() as session:
-            result: ScalarResult = (
-                await session.execute(
-                    select(User).where(func.lower(User.email) == func.lower(email))
-                )
-            ).scalars()
-
-            return result.one_or_none()
+        return await self.repo.get(func.lower(User.email) == func.lower(email))
 
     def _hash_password(self, password: str) -> str:
         return self._ph.hash(password)
@@ -104,13 +86,11 @@ class AuthenticationService:
 
         if not user:
             raise HTTPException(
-                detail="No active account found with given credentials.",
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
 
         if not self.user_service.verify_password(password, user.password):
             raise HTTPException(
-                detail="No active account found with given credentials.",
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
 

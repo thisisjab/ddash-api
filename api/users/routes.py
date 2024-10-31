@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends, status
 from fastapi.routing import APIRouter
 
-from api.users.schemas import AccessTokenIn, AccessTokenOut, UserIn, UserOut
+from api.users.schemas import AccessTokenIn, AccessTokenOut, UserRequest, UserResponse
 from api.users.services import AuthenticationService, UserService
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -18,8 +18,10 @@ async def obtain_access_token(
     return {"access": access_key}
 
 
-@users_router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-async def create_single_user(data: UserIn, service: Annotated[UserService, Depends()]):
+@users_router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def create_single_user(
+    data: UserRequest, service: Annotated[UserService, Depends()]
+):
     return await service.create_user(data)
 
 

@@ -11,12 +11,12 @@ class User(BaseModel):
     modified_at: datetime
 
 
-class UserIn(BaseModel):
+class UserRequest(BaseModel):
     email: EmailStr
     password: str = Field(exclude=True, min_length=5)
 
 
-class UserOut(User):
+class UserResponse(User):
     model_config = ConfigDict(from_attributes=True)
 
 
