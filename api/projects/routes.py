@@ -15,7 +15,7 @@ async def get_projects(
     service: Annotated[ProjectService, Depends()],
     user: AuthenticatedUser,
 ):
-    return await service.get_projects_of_user(user_id=user.id)
+    return await service.get_projects_of_user(user=user)
 
 
 @router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
@@ -24,4 +24,4 @@ async def create_project(
     service: Annotated[ProjectService, Depends()],
     user: AuthenticatedUser,
 ):
-    return await service.create_project(data, creator_id=user.id)
+    return await service.create_project_for_user(data, creator=user)
