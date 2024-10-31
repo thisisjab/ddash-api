@@ -1,6 +1,7 @@
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import Depends, status
+from fastapi import Depends, Path, status
 from fastapi.routing import APIRouter
 
 from api.projects.schemas import ProjectRequest, ProjectResponse
@@ -16,6 +17,17 @@ async def get_projects(
     user: AuthenticatedUser,
 ):
     return await service.get_projects_of_user(user=user)
+
+
+@router.get(
+    "/{project_id}", response_model=ProjectResponse, status_code=status.HTTP_200_OK
+)
+async def get_project(
+    service: Annotated[ProjectService, Depends()],
+    user: AuthenticatedUser,
+    project_id: Annotated[UUID, Path()],
+):
+    return await service.get_project_for_user_by_id(id_=project_id, user=user)
 
 
 @router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)

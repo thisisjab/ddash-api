@@ -1,6 +1,7 @@
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 
 from api.projects.models import Project
 from api.projects.repository import ProjectRepository
@@ -28,5 +29,15 @@ class ProjectService:
                 deadline=data.deadline,
             )
         )
+
+        return ProjectResponse.model_validate(project)
+
+    async def get_project_for_user_by_id(
+        self, id_: UUID, user: User
+    ) -> ProjectResponse:
+        project = await self.repo.get(Project.id == id_, Project.creator_id == user.id)
+
+        if not project:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
         return ProjectResponse.model_validate(project)
