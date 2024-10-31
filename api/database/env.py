@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from api.config import settings
 from api.database.registry import *  # noqa: F403
+from api.database.setup import async_database_url_scheme
 
 config = context.config
 
@@ -16,7 +17,16 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+config.set_main_option(
+    "sqlalchemy.url",
+    async_database_url_scheme.format(
+        settings.DATABASE_USERNAME,
+        settings.DATABASE_PASSWORD,
+        settings.DATABASE_HOST,
+        settings.DATABASE_PORT,
+        settings.DATABASE_NAME,
+    ),
+)
 
 from api.database.models import BaseDatabaseModel  # noqa: F401, E402
 
