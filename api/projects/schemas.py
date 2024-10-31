@@ -25,6 +25,9 @@ class ProjectRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_end_date(self):
+        if not (self.finish_date and self.start_date):
+            return self
+
         if self.finish_date < self.start_date:
             raise ValueError("Finish date must be greater than start date")
 
