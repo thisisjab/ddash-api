@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.sql.expression import ClauseElement
 from sqlalchemy.sql.selectable import Select
 
@@ -39,6 +39,33 @@ class RepositoryBase:
 
             result = await session.execute(q)
             return result.scalars().all()
+
+    async def get_all_count(
+        self,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        filter_clauses: List[ClauseElement] = [],
+        order_clauses: List[ClauseElement] = [],
+    ) -> Select:
+        async with self.async_session.begin() as session:
+            q = select(func.count())
+
+            if filter_clauses:
+                q = q.filter(*filter_clauses)
+
+            if order_clauses:
+                q = q.order_by(*order_clauses)
+
+            if limit:
+                q = q.limit(limit)
+
+            if offset:
+                q = q.offset(offset)
+
+            q = q.select_from(self.model)
+
+            result = await session.execute(q)
+            return result.scalar()
 
     async def get(self, *filter_clauses: list[ClauseElement]):
         async with self.async_session.begin() as session:
