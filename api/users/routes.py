@@ -3,16 +3,21 @@ from typing import Annotated
 from fastapi import Depends, status
 from fastapi.routing import APIRouter
 
-from api.users.schemas import AccessTokenIn, AccessTokenOut, UserRequest, UserResponse
+from api.users.schemas import (
+    AccessTokenRequest,
+    AccessTokenResponse,
+    UserRequest,
+    UserResponse,
+)
 from api.users.services import AuthenticationService, UserService
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"])
 users_router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@auth_router.post("/token", response_model=AccessTokenOut)
+@auth_router.post("/token", response_model=AccessTokenResponse)
 async def obtain_access_token(
-    data: AccessTokenIn, service: Annotated[AuthenticationService, Depends()]
+    data: AccessTokenRequest, service: Annotated[AuthenticationService, Depends()]
 ):
     access_key = await service.generate_access_token_for_user(data.email, data.password)
     return {"access": access_key}

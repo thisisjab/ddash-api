@@ -20,10 +20,10 @@ class UserResponse(User):
     model_config = ConfigDict(from_attributes=True)
 
 
-class AccessTokenIn(BaseModel):
+class AccessTokenRequest(BaseModel):
     email: EmailStr
     password: str = Field(exclude=True, min_length=5)
 
 
-class AccessTokenOut(BaseModel):
+class AccessTokenResponse(BaseModel):
     access: str
