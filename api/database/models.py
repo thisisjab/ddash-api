@@ -13,7 +13,7 @@ naming_convention = {
 }
 
 
-metadata = MetaData(naming_convention=naming_convention, schema="ddash")
+metadata = MetaData(naming_convention=naming_convention)
 
 
 class BaseDatabaseModel(MappedAsDataclass, DeclarativeBase):
