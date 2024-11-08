@@ -1,11 +1,15 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, Path, Query, status
+from fastapi import Body, Depends, HTTPException, Path, Query, status
 from fastapi.routing import APIRouter
 
 from api.orgs import permissions
-from api.orgs.schemas import OrganizationRequest, OrganizationResponse
+from api.orgs.schemas import (
+    OrganizationCreateRequest,
+    OrganizationPartialUpdateRequest,
+    OrganizationResponse,
+)
 from api.orgs.services import OrganizationService
 from api.users.auth.dependencies import AuthenticatedUser
 from api.utils.pagination import PaginatedResponse, PaginationParams
@@ -39,7 +43,7 @@ async def get_organizations(
     status_code=status.HTTP_201_CREATED,
 )
 async def create_organization(
-    data: OrganizationRequest,
+    data: OrganizationCreateRequest,
     user: AuthenticatedUser,
     service: Annotated[OrganizationService, Depends()],
 ):
@@ -57,7 +61,7 @@ async def get_organization(
     if not organization:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    if not permissions.can_view_organization(
+    if not permissions.can_access_organization(
         request_user=user, organization=organization
     ):
         raise HTTPException(
@@ -65,3 +69,25 @@ async def get_organization(
         )
 
     return organization
+
+
+@router.put("/organizations/{organization_id}", response_model=OrganizationResponse)
+async def update_organization(
+    user: AuthenticatedUser,
+    service: Annotated[OrganizationService, Depends()],
+    organization_id: Annotated[UUID, Path()],
+    body: Annotated[OrganizationPartialUpdateRequest, Body()],
+):
+    organization = await service.get_organization(organization_id)
+
+    if not organization:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    if not permissions.can_access_organization(
+        request_user=user, organization=organization
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+    return await service.update_organization(organization, body)

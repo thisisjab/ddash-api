@@ -4,7 +4,11 @@ from sqlalchemy import select
 
 from api.database.dependencies import AsyncSession
 from api.orgs.models import Organization
-from api.orgs.schemas import OrganizationRequest, OrganizationResponse
+from api.orgs.schemas import (
+    OrganizationCreateRequest,
+    OrganizationPartialUpdateRequest,
+    OrganizationResponse,
+)
 from api.users.models import User
 from api.utils.pagination import PaginatedResponse, PaginationParams
 
@@ -29,7 +33,7 @@ class OrganizationService:
             return instance.scalars().one_or_none()
 
     async def create_organization_for_user(
-        self, data: OrganizationRequest, user: User
+        self, data: OrganizationCreateRequest, user: User
     ) -> Organization:
         async with self.session.begin() as ac:
             instance = Organization(**data.model_dump(), manager_id=user.id)
@@ -38,3 +42,16 @@ class OrganizationService:
             await ac.refresh(instance)
 
         return instance
+
+    async def update_organization(
+        self, organization: Organization, data: OrganizationPartialUpdateRequest
+    ) -> Organization:
+        for k, v in data.model_dump().items():
+            setattr(organization, k, v)
+
+        async with self.session.begin() as ac:
+            ac.add(organization)
+            await ac.flush()
+            await ac.refresh(organization)
+
+        return organization

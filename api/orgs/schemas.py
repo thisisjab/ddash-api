@@ -4,9 +4,14 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
-class OrganizationRequest(BaseModel):
+class OrganizationCreateRequest(BaseModel):
     name: str = Field(max_length=75)
     description: str = Field(max_length=255)
+
+
+class OrganizationPartialUpdateRequest(BaseModel):
+    name: str = Field(max_length=75, default=None)
+    description: str = Field(max_length=255, default=None)
 
 
 class OrganizationResponse(BaseModel):

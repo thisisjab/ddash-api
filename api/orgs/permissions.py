@@ -9,6 +9,6 @@ def can_view_users_organizations(*, request_user: User, owner_id: UUID) -> bool:
     return request_user.id == owner_id
 
 
-def can_view_organization(*, request_user: User, organization: Organization) -> bool:
+def can_access_organization(*, request_user: User, organization: Organization) -> bool:
     # TODO: check for super admin permission after adding superadmin field to user
     return organization.manager_id == request_user.id
