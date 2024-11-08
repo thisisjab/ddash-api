@@ -100,3 +100,26 @@ async def update_organization(
         )
 
     return await service.update_organization(organization, body)
+
+
+@router.delete(
+    "/organizations/{organization_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_organization(
+    user: AuthenticatedUser,
+    service: Annotated[OrganizationService, Depends()],
+    organization_id: Annotated[UUID, Path()],
+):
+    organization = await service.get_organization(organization_id)
+
+    if not organization:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    if not permissions.can_access_organization(
+        request_user=user, organization=organization
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+    await service.delete_organization(organization)

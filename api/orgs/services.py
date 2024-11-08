@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from api.database.dependencies import AsyncSession
 from api.orgs.models import Organization
@@ -55,3 +55,9 @@ class OrganizationService:
             await ac.refresh(organization)
 
         return organization
+
+    async def delete_organization(self, organization: Organization) -> None:
+        query = delete(Organization).where(Organization.id == organization.id)
+        async with self.session.begin() as ac:
+            await ac.execute(query)
+            await ac.flush()
