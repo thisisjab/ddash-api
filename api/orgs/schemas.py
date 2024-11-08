@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class OrganizationRequest(BaseModel):
@@ -18,3 +18,10 @@ class OrganizationResponse(BaseModel):
     modified_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class OrganizationInviteRequest(BaseModel):
+    user_email: EmailStr
+
+
+class OrganizationInviteResponse(BaseModel): ...
