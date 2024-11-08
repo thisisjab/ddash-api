@@ -1,9 +1,10 @@
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from fastapi import HTTPException, status
+from sqlalchemy import delete, exists, select
 
 from api.database.dependencies import AsyncSession
-from api.orgs.models import Organization
+from api.orgs.models import Organization, OrganizationInvitation, OrganizationMembership
 from api.orgs.schemas import (
     OrganizationCreateRequest,
     OrganizationPartialUpdateRequest,
@@ -61,3 +62,52 @@ class OrganizationService:
         async with self.session.begin() as ac:
             await ac.execute(query)
             await ac.flush()
+
+    async def invite_user_to_organization(
+        self, organization: Organization, user: User
+    ) -> OrganizationInvitation:
+        membership_exists_query = (
+            exists(OrganizationMembership)
+            .where(
+                OrganizationMembership.organization_id == organization.id,
+                OrganizationMembership.user_id == user.id,
+            )
+            .select()
+        )
+        invitation_exists_query = (
+            exists(OrganizationInvitation)
+            .where(
+                OrganizationInvitation.organization_id == organization.id,
+                OrganizationInvitation.user_id == user.id,
+            )
+            .select()
+        )
+
+        async with self.session.begin() as ac:
+            membership_result = await ac.execute(membership_exists_query)
+            membership_exists = membership_result.scalar()
+
+            if membership_exists:
+                raise HTTPException(
+                    detail="User is already a member of the organization.",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+
+            invitation_result = await ac.execute(invitation_exists_query)
+            invitation_exists = invitation_result.scalar()
+
+            if invitation_exists:
+                raise HTTPException(
+                    detail="User is already invited.",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+
+            invitation = OrganizationInvitation(
+                organization_id=organization.id, user_id=user.id, accepted=None
+            )
+
+            ac.add(invitation)
+            await ac.flush()
+            await ac.refresh(invitation)
+
+        return invitation

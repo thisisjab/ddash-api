@@ -26,7 +26,14 @@ class OrganizationResponse(BaseModel):
 
 
 class OrganizationInviteRequest(BaseModel):
-    user_email: EmailStr
+    email: EmailStr
 
 
-class OrganizationInviteResponse(BaseModel): ...
+class OrganizationInviteResponse(BaseModel):
+    id: UUID
+    organization_id: UUID
+    user_id: UUID
+    created_at: datetime
+    modified_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

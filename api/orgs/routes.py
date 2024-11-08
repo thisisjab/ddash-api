@@ -7,11 +7,13 @@ from fastapi.routing import APIRouter
 from api.orgs import permissions
 from api.orgs.schemas import (
     OrganizationCreateRequest,
+    OrganizationInviteRequest,
     OrganizationPartialUpdateRequest,
     OrganizationResponse,
 )
 from api.orgs.services import OrganizationService
 from api.users.auth.dependencies import AuthenticatedUser
+from api.users.services import UserService
 from api.utils.pagination import PaginatedResponse, PaginationParams
 
 router = APIRouter(prefix="", tags=["organizations"])
@@ -123,3 +125,39 @@ async def delete_organization(
         )
 
     await service.delete_organization(organization)
+
+
+@router.post(
+    "/organizations/{organization_id}/invite/", status_code=status.HTTP_204_NO_CONTENT
+)
+async def invite_to_organization(
+    user: AuthenticatedUser,
+    organization_service: Annotated[OrganizationService, Depends()],
+    user_service: Annotated[UserService, Depends()],
+    organization_id: Annotated[UUID, Path()],
+    body: Annotated[OrganizationInviteRequest, Body()],
+):
+    organization = await organization_service.get_organization(organization_id)
+    if not organization:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    if not permissions.can_access_organization(
+        request_user=user, organization=organization
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+    if body.email.lower() == user.email.lower():
+        raise HTTPException(
+            detail="Cannot invite yourself.", status_code=status.HTTP_400_BAD_REQUEST
+        )
+
+    user = await user_service.get_user_by_email(body.email)
+    if not user:
+        raise HTTPException(
+            detail="User with given email does not exist.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    return await organization_service.invite_user_to_organization(organization, user)
