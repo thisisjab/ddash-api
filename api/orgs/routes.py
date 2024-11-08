@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import Depends, HTTPException, Path, Query, status
 from fastapi.routing import APIRouter
 
+from api.orgs import permissions
 from api.orgs.schemas import OrganizationRequest, OrganizationResponse
 from api.orgs.services import OrganizationService
 from api.users.auth.dependencies import AuthenticatedUser
@@ -22,13 +23,14 @@ async def get_organizations(
     service: Annotated[OrganizationService, Depends()],
     pagination_params: Annotated[PaginationParams, Query()],
 ):
-    if user.id == user_id:
-        return await service.get_users_organizations(user, pagination_params)
+    if not permissions.can_view_users_organizations(
+        request_user=user, owner_id=user_id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
 
-    raise HTTPException(
-        detail="Permissions for non-owner users have not been implemented, yet.",
-        status_code=status.HTTP_403_FORBIDDEN,
-    )
+    return await service.get_users_organizations(user, pagination_params)
 
 
 @router.post(
