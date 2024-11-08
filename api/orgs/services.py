@@ -1,26 +1,21 @@
-from typing import Annotated
-
-from fastapi import Depends
-
 from api.orgs.models import Organization
-from api.orgs.repository import OrganizationRepository
 from api.orgs.schemas import OrganizationRequest, OrganizationResponse
 from api.users.models import User
+from api.database.dependencies import AsyncSession
 
 
 class OrganizationService:
-    """Crud service for organization model."""
+    def __init__(self, session: AsyncSession):
+        self.session = session
 
-    def __init__(
-        self, repository: Annotated[OrganizationRepository, Depends()]
-    ) -> None:
-        self.repo = repository
 
     async def create_organization_for_user(
         self, data: OrganizationRequest, user: User
     ) -> OrganizationResponse:
-        organization = await self.repo.create(
-            Organization(**data.model_dump(), manager_id=user.id)
-        )
+        async with self.session.begin() as ac:
+            instance =Organization(**data.model_dump(), manager_id=user.id)
+            ac.add(instance)
+            await ac.flush()
+            await ac.refresh(instance)
 
-        return OrganizationResponse.model_validate(organization)
+        return OrganizationResponse.model_validate(instance)

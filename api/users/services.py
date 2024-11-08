@@ -7,17 +7,17 @@ import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from fastapi import Depends, HTTPException, status
-from sqlalchemy import func
+from sqlalchemy import func, select
 
 from api.config import settings
+from api.database.dependencies import AsyncSession
 from api.users.models import User
-from api.users.repository import UserRepository
 from api.users.schemas import UserRequest, UserResponse
 
 
 class UserService:
-    def __init__(self, repository: Annotated[UserRepository, Depends()]):
-        self.repo = repository
+    def __init__(self, session: AsyncSession):
+        self.session = session
         self._ph = PasswordHasher()
 
     async def create_user(self, data: UserRequest) -> UserResponse:
@@ -29,14 +29,25 @@ class UserService:
 
         hashed_password = self._hash_password(data.password)
         user = User(email=data.email, password=hashed_password)
-        created_user = await self.repo.create(user)
-        return UserResponse.model_validate(created_user)
+
+        async with self.session.begin() as ac:
+            ac.add(user)
+            await ac.flush()
+            await ac.refresh(user)
+
+        return UserResponse.model_validate(user)
 
     async def get_user_by_id(self, id_: str | UUID) -> User | None:
-        return await self.repo.get(User.id == id_)
+        async with self.session() as ac:
+            query = select(User).where(User.id == id_)
+            result = await ac.execute(query)
+            return result.scalars().one_or_none()
 
     async def get_user_by_email(self, email: str) -> User | None:
-        return await self.repo.get(func.lower(User.email) == func.lower(email))
+        async with self.session() as ac:
+            query = select(User).where(func.lower(User.email) == func.lower(email))
+            result = await ac.execute(query)
+            return result.scalars().one_or_none()
 
     def _hash_password(self, password: str) -> str:
         return self._ph.hash(password)
@@ -53,16 +64,16 @@ class AuthenticationService:
         self.user_service = user_service
 
     def _create_access_token(
-        self, user_id: str | UUID, expiry: timedelta | None = None
+            self, user_id: str | UUID, expiry: timedelta | None = None
     ) -> str:
         payload = {
             "user_id": str(user_id),
             "exp": time.time()
-            + (
-                expiry.total_seconds()
-                if expiry
-                else settings.ACCESS_TOKEN_EXPIRY_SECONDS
-            ),
+                   + (
+                       expiry.total_seconds()
+                       if expiry
+                       else settings.ACCESS_TOKEN_EXPIRY_SECONDS
+                   ),
         }
 
         return jwt.encode(
