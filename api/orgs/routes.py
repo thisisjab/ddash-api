@@ -20,6 +20,7 @@ router = APIRouter(prefix="", tags=["organizations"])
 @router.get(
     "/users/{user_id}/organizations",
     response_model=PaginatedResponse[OrganizationResponse],
+    status_code=status.HTTP_200_OK,
 )
 async def get_organizations(
     user_id: Annotated[UUID, Path()],
@@ -50,7 +51,11 @@ async def create_organization(
     return await service.create_organization_for_user(data=data, user=user)
 
 
-@router.get("/organizations/{organization_id}", response_model=OrganizationResponse)
+@router.get(
+    "/organizations/{organization_id}",
+    response_model=OrganizationResponse,
+    status_code=status.HTTP_200_OK,
+)
 async def get_organization(
     user: AuthenticatedUser,
     service: Annotated[OrganizationService, Depends()],
@@ -71,7 +76,11 @@ async def get_organization(
     return organization
 
 
-@router.put("/organizations/{organization_id}", response_model=OrganizationResponse)
+@router.put(
+    "/organizations/{organization_id}",
+    response_model=OrganizationResponse,
+    status_code=status.HTTP_200_OK,
+)
 async def update_organization(
     user: AuthenticatedUser,
     service: Annotated[OrganizationService, Depends()],
