@@ -1,8 +1,7 @@
 import math
 from typing import Annotated, Generic, Self, TypeVar
 
-from fastapi import HTTPException, status
-from fastapi import Query
+from fastapi import HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -26,10 +25,10 @@ class PaginatedResponse(BaseModel, Generic[T]):
     items: list[T] = []
 
     async def paginate(
-            self,
-            query: Select,
-            session: async_sessionmaker,
-            pagination_params: PaginationParams,
+        self,
+        query: Select,
+        session: async_sessionmaker,
+        pagination_params: PaginationParams,
     ) -> Self:
         async with session() as ac:
             count_query = query.with_only_columns(func.count()).order_by(None)
@@ -38,8 +37,10 @@ class PaginatedResponse(BaseModel, Generic[T]):
 
             self.total_pages = math.ceil(items_count / pagination_params.per_page)
 
-            if pagination_params.page > self.total_pages:
-                raise HTTPException(detail="Invalid page.", status_code=status.HTTP_400_BAD_REQUEST)
+            if pagination_params.page > self.total_pages != 0:
+                raise HTTPException(
+                    detail="Invalid page.", status_code=status.HTTP_400_BAD_REQUEST
+                )
 
             self.current_page = pagination_params.page
             limit = pagination_params.per_page
@@ -49,5 +50,6 @@ class PaginatedResponse(BaseModel, Generic[T]):
             self.items = items_result
             self.count = len(items_result)
             return self
+
 
 #
