@@ -45,18 +45,17 @@ class OrganizationMembership(BaseDatabaseModel, TimestampedModelMixin):
 
 
 class OrganizationInvitation(BaseDatabaseModel, TimestampedModelMixin):
-    """Model representing a user's invitation to an organization.'"""
+    """Model representing a user's invitation to an organization."""
 
     __tablename__ = "organization_invitations"
 
     accepted: Mapped[bool] = mapped_column(types.Boolean(), nullable=True)
     organization_id: Mapped[UUID] = mapped_column(
         ForeignKey("organizations.id", ondelete="CASCADE"),
-        primary_key=True,
         nullable=False,
     )
     user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=False
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
 
     __table_args__ = (PrimaryKeyConstraint("organization_id", "user_id"),)

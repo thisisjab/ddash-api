@@ -1,8 +1,8 @@
 """add_organization_invitation_table
 
-Revision ID: cf1225b7e07e
+Revision ID: a208475536c2
 Revises: e08e500e6615
-Create Date: 2024-11-08 17:05:26.916205+00:00
+Create Date: 2024-11-09 08:06:36.126881+00:00
 
 """
 
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "cf1225b7e07e"
+revision: str = "a208475536c2"
 down_revision: Union[str, None] = "e08e500e6615"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
