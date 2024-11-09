@@ -7,9 +7,11 @@ from fastapi.routing import APIRouter
 from api.orgs import permissions
 from api.orgs.schemas import (
     OrganizationCreateRequest,
-    OrganizationInviteRequest,
+    OrganizationInvitationResponse,
+    OrganizationInvitationSetStatusRequest,
     OrganizationPartialUpdateRequest,
     OrganizationResponse,
+    OrganizationSendInvitationRequest,
 )
 from api.orgs.services import OrganizationService
 from api.users.auth.dependencies import AuthenticatedUser
@@ -30,9 +32,7 @@ async def get_organizations(
     service: Annotated[OrganizationService, Depends()],
     pagination_params: Annotated[PaginationParams, Query()],
 ):
-    if not permissions.can_view_users_organizations(
-        request_user=user, owner_id=user_id
-    ):
+    if not permissions.can_view_user_organizations(request_user=user, owner_id=user_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
         )
@@ -135,7 +135,7 @@ async def invite_to_organization(
     organization_service: Annotated[OrganizationService, Depends()],
     user_service: Annotated[UserService, Depends()],
     organization_id: Annotated[UUID, Path()],
-    body: Annotated[OrganizationInviteRequest, Body()],
+    body: Annotated[OrganizationSendInvitationRequest, Body()],
 ):
     organization = await organization_service.get_organization(organization_id)
     if not organization:
@@ -161,3 +161,55 @@ async def invite_to_organization(
         )
 
     return await organization_service.invite_user_to_organization(organization, user)
+
+
+@router.get(
+    "/users/{user_id}/organizations/invitations",
+    status_code=status.HTTP_200_OK,
+    response_model=PaginatedResponse[OrganizationInvitationResponse],
+)
+async def get_user_invitations(
+    user_id: Annotated[UUID, Path()],
+    user: AuthenticatedUser,
+    service: Annotated[OrganizationService, Depends()],
+    pagination_params: Annotated[PaginationParams, Query()],
+):
+    if not permissions.can_view_user_organization_invitations(
+        request_user=user, user_id=user_id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+    return await service.get_user_invitations(user.id, pagination_params)
+
+
+@router.post(
+    "/users/{user_id}/organizations/invitations/{organization_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=OrganizationInvitationResponse,
+)
+async def set_invitation_status(
+    user_id: Annotated[UUID, Path()],
+    organization_id: Annotated[UUID, Path()],
+    user: AuthenticatedUser,
+    body: OrganizationInvitationSetStatusRequest,
+    service: Annotated[OrganizationService, Depends()],
+):
+    if not permissions.can_view_user_organization_invitations(
+        request_user=user, user_id=user_id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+    invitation = await service.get_user_pending_invitation_with_organization_id(
+        user.id, organization_id
+    )
+
+    if not invitation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    await service.set_invitation_status(invitation, body.accepted)
+
+    return OrganizationInvitationResponse.model_validate(invitation)

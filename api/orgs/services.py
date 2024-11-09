@@ -1,12 +1,13 @@
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import delete, exists, select
+from sqlalchemy import and_, delete, exists, select
 
 from api.database.dependencies import AsyncSession
 from api.orgs.models import Organization, OrganizationInvitation, OrganizationMembership
 from api.orgs.schemas import (
     OrganizationCreateRequest,
+    OrganizationInvitationResponse,
     OrganizationPartialUpdateRequest,
     OrganizationResponse,
 )
@@ -109,5 +110,79 @@ class OrganizationService:
             ac.add(invitation)
             await ac.flush()
             await ac.refresh(invitation)
+
+        return invitation
+
+    async def get_user_invitations(
+        self, user_id: UUID, pagination_params: PaginationParams
+    ) -> PaginatedResponse[OrganizationInvitationResponse]:
+        query = select(OrganizationInvitation).where(
+            OrganizationInvitation.user_id == user_id,
+            OrganizationInvitation.accepted == None,  # noqa: E711
+        )
+        return await PaginatedResponse().paginate(
+            query, self.session, pagination_params
+        )
+
+    async def get_user_pending_invitation_with_organization_id(
+        self, user_id: UUID, organization_id: UUID
+    ) -> OrganizationInvitation:
+        query = select(OrganizationInvitation).where(
+            and_(
+                OrganizationInvitation.user_id == user_id,
+                OrganizationInvitation.organization_id == organization_id,
+                OrganizationInvitation.accepted == None,  # noqa: E711
+            )
+        )
+
+        async with self.session() as ac:
+            instance = await ac.execute(query)
+            return instance.scalars().one_or_none()
+
+    async def add_member_to_organization(
+        self, organization_id: UUID, user_id: UUID
+    ) -> OrganizationMembership:
+        membership_exists_query = (
+            exists(OrganizationMembership)
+            .where(
+                OrganizationMembership.organization_id == organization_id,
+                OrganizationMembership.user_id == user_id,
+            )
+            .select()
+        )
+
+        async with self.session.begin() as ac:
+            membership_result = await ac.execute(membership_exists_query)
+            membership_exists = membership_result.scalar()
+
+            if membership_exists:
+                raise HTTPException(
+                    detail="User is already a member of the organization.",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+
+            membership = OrganizationMembership(
+                organization_id=organization_id, user_id=user_id
+            )
+
+            ac.add(membership)
+            await ac.flush()
+            await ac.refresh(membership)
+
+        return membership
+
+    async def set_invitation_status(
+        self, invitation: OrganizationInvitation, accepted: bool
+    ) -> OrganizationInvitation:
+        async with self.session.begin() as ac:
+            invitation.accepted = accepted
+            ac.add(invitation)
+            await ac.flush()
+            await ac.refresh(invitation)
+
+            if invitation.accepted:
+                await self.add_member_to_organization(
+                    invitation.organization_id, invitation.user_id
+                )
 
         return invitation

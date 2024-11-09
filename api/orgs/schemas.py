@@ -25,15 +25,19 @@ class OrganizationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class OrganizationInviteRequest(BaseModel):
+class OrganizationSendInvitationRequest(BaseModel):
     email: EmailStr
 
 
-class OrganizationInviteResponse(BaseModel):
-    id: UUID
+class OrganizationInvitationResponse(BaseModel):
     organization_id: UUID
     user_id: UUID
+    accepted: bool | None
     created_at: datetime
     modified_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class OrganizationInvitationSetStatusRequest(BaseModel):
+    accepted: bool
