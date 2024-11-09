@@ -32,6 +32,10 @@ async def get_organizations(
     service: Annotated[OrganizationService, Depends()],
     pagination_params: Annotated[PaginationParams, Query()],
 ):
+    """Get user organizations (both owned/participated)."""
+
+    # TODO: add participated organizations.
+
     if not permissions.can_view_user_organizations(request_user=user, owner_id=user_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -50,6 +54,7 @@ async def create_organization(
     user: AuthenticatedUser,
     service: Annotated[OrganizationService, Depends()],
 ):
+    """Create an organization with manager set to current user."""
     return await service.create_organization_for_user(data=data, user=user)
 
 
@@ -63,6 +68,7 @@ async def get_organization(
     service: Annotated[OrganizationService, Depends()],
     organization_id: Annotated[UUID, Path()],
 ):
+    """Get an organization by id. Note: user must be a member of the organization or the manager."""
     organization = await service.get_organization(organization_id)
 
     if not organization:
@@ -89,6 +95,7 @@ async def update_organization(
     organization_id: Annotated[UUID, Path()],
     body: Annotated[OrganizationPartialUpdateRequest, Body()],
 ):
+    """Update an organization by id. Note: user must be the manager."""
     organization = await service.get_organization(organization_id)
 
     if not organization:
@@ -112,6 +119,7 @@ async def delete_organization(
     service: Annotated[OrganizationService, Depends()],
     organization_id: Annotated[UUID, Path()],
 ):
+    """Delete an organization by id. This action removes all memberships and invitations. Note: user must be the manager."""
     organization = await service.get_organization(organization_id)
 
     if not organization:
@@ -137,6 +145,7 @@ async def invite_to_organization(
     organization_id: Annotated[UUID, Path()],
     body: Annotated[OrganizationSendInvitationRequest, Body()],
 ):
+    """Invite an existing user to current organization with email. Note: inviter must be the manager."""
     organization = await organization_service.get_organization(organization_id)
     if not organization:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
@@ -174,6 +183,10 @@ async def get_user_invitations(
     service: Annotated[OrganizationService, Depends()],
     pagination_params: Annotated[PaginationParams, Query()],
 ):
+    """Get all pending invitations for authenticated user."""
+
+    # TODO: remove {user_id} path param since it's useless.
+
     if not permissions.can_view_user_organization_invitations(
         request_user=user, user_id=user_id
     ):
@@ -196,6 +209,7 @@ async def set_invitation_status(
     body: OrganizationInvitationSetStatusRequest,
     service: Annotated[OrganizationService, Depends()],
 ):
+    """Accept or reject invitation for the organization. This action is not reservable. Note: user must be the invited."""
     if not permissions.can_view_user_organization_invitations(
         request_user=user, user_id=user_id
     ):
