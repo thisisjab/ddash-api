@@ -1,16 +1,45 @@
+from typing import Annotated
 from uuid import UUID
 
+from fastapi import Depends, HTTPException, Path, status
+
 from api.orgs.models import Organization
-from api.users.models import User
+from api.orgs.services import OrganizationService
+from api.users.auth.dependencies import AuthenticatedUser
 
 
-def can_access_organization(*, request_user: User, organization: Organization) -> bool:
-    # TODO: check for super admin permission after adding superadmin field to user
-    return organization.manager_id == request_user.id
+async def get_organization_for_modification(
+    organization_id: Annotated[UUID, Path()],
+    service: Annotated[OrganizationService, Depends()],
+    user: AuthenticatedUser,
+) -> Organization:
+    organization = await service.get_organization(organization_id)
+
+    if not organization:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+
+    if organization.manager_id == user.id:
+        return organization
+
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
 
-def can_view_user_organization_invitations(
-    *, request_user: User, user_id: UUID
-) -> bool:
-    # TODO: check for super admin permission after adding superadmin field to user
-    return request_user.id == user_id
+async def get_organization_for_view(
+    organization_id: Annotated[UUID, Path()],
+    service: Annotated[OrganizationService, Depends()],
+    user: AuthenticatedUser,
+) -> Organization:
+    organization = await service.get_organization(organization_id)
+
+    if not organization:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+
+    if organization.manager_id == user.id:
+        return organization
+
+    membership = await service.get_membership(organization.id, user.id)
+
+    if membership is not None:
+        return organization
+
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)

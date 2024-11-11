@@ -55,23 +55,9 @@ async def create_organization(
     status_code=status.HTTP_200_OK,
 )
 async def get_organization(
-    user: AuthenticatedUser,
-    service: Annotated[OrganizationService, Depends()],
-    organization_id: Annotated[UUID, Path()],
+    organization: Annotated[permissions.get_organization_for_view, Depends()],
 ):
     """Get an organization by id. Note: user must be a member of the organization or the manager."""
-    organization = await service.get_organization(organization_id)
-
-    if not organization:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    if not permissions.can_access_organization(
-        request_user=user, organization=organization
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-        )
-
     return organization
 
 
@@ -81,24 +67,11 @@ async def get_organization(
     status_code=status.HTTP_200_OK,
 )
 async def update_organization(
-    user: AuthenticatedUser,
-    service: Annotated[OrganizationService, Depends()],
-    organization_id: Annotated[UUID, Path()],
     body: Annotated[OrganizationPartialUpdateRequest, Body()],
+    organization: Annotated[permissions.get_organization_for_modification, Depends()],
+    service: Annotated[OrganizationService, Depends()],
 ):
     """Update an organization by id. Note: user must be the manager."""
-    organization = await service.get_organization(organization_id)
-
-    if not organization:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    if not permissions.can_access_organization(
-        request_user=user, organization=organization
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-        )
-
     return await service.update_organization(organization, body)
 
 
@@ -106,23 +79,10 @@ async def update_organization(
     "/organizations/{organization_id}", status_code=status.HTTP_204_NO_CONTENT
 )
 async def delete_organization(
-    user: AuthenticatedUser,
+    organization: Annotated[permissions.get_organization_for_modification, Depends()],
     service: Annotated[OrganizationService, Depends()],
-    organization_id: Annotated[UUID, Path()],
 ):
     """Delete an organization by id. This action removes all memberships and invitations. Note: user must be the manager."""
-    organization = await service.get_organization(organization_id)
-
-    if not organization:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    if not permissions.can_access_organization(
-        request_user=user, organization=organization
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-        )
-
     await service.delete_organization(organization.id)
 
 
@@ -130,29 +90,14 @@ async def delete_organization(
     "/organizations/{organization_id}/invite/", status_code=status.HTTP_204_NO_CONTENT
 )
 async def invite_to_organization(
-    user: AuthenticatedUser,
     organization_service: Annotated[OrganizationService, Depends()],
     user_service: Annotated[UserService, Depends()],
-    organization_id: Annotated[UUID, Path()],
+    organization: Annotated[permissions.get_organization_for_modification, Depends()],
     body: Annotated[OrganizationSendInvitationRequest, Body()],
 ):
     """Invite an existing user to current organization with email. Note: inviter must be the manager."""
-    organization = await organization_service.get_organization(organization_id)
-    if not organization:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    if not permissions.can_access_organization(
-        request_user=user, organization=organization
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-        )
-
-    if body.email.lower() == user.email.lower():
-        raise HTTPException(
-            detail="Cannot invite yourself.", status_code=status.HTTP_400_BAD_REQUEST
-        )
-
+    # TODO: prohibit inviting self
     user = await user_service.get_user_by_email(body.email)
     if not user:
         raise HTTPException(
@@ -171,43 +116,26 @@ async def invite_to_organization(
     response_model=PaginatedResponse[OrganizationInvitationResponse],
 )
 async def get_user_invitations(
-    user_id: Annotated[UUID, Path()],
     user: AuthenticatedUser,
     service: Annotated[OrganizationService, Depends()],
     pagination_params: Annotated[PaginationParams, Query()],
 ):
     """Get all pending invitations for authenticated user."""
-
-    if not permissions.can_view_user_organization_invitations(
-        request_user=user, user_id=user_id
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-        )
-
     return await service.get_user_invitations(user.id, pagination_params)
 
 
 @router.post(
-    "/users/{user_id}/organizations/invitations/{organization_id}",
+    "/users/me/organizations/invitations/{organization_id}",
     status_code=status.HTTP_200_OK,
     response_model=OrganizationInvitationResponse,
 )
 async def set_invitation_status(
-    user_id: Annotated[UUID, Path()],
-    organization_id: Annotated[UUID, Path()],
     user: AuthenticatedUser,
+    organization_id: Annotated[UUID, Path()],
     body: OrganizationInvitationSetStatusRequest,
     service: Annotated[OrganizationService, Depends()],
 ):
     """Accept or reject invitation for the organization. This action is not reservable. Note: user must be the invited."""
-    if not permissions.can_view_user_organization_invitations(
-        request_user=user, user_id=user_id
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-        )
-
     invitation = await service.get_user_pending_invitation_with_organization_id(
         user.id, organization_id
     )
@@ -216,5 +144,4 @@ async def set_invitation_status(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     await service.set_invitation_status(invitation, body.accepted)
-
     return OrganizationInvitationResponse.model_validate(invitation)

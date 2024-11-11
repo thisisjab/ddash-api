@@ -86,11 +86,24 @@ class OrganizationService:
             await ac.execute(query)
             await ac.flush()
 
+    async def get_membership(
+        self, organization_id: UUID, user_id: UUID
+    ) -> OrganizationMembership:
+        """Get an organization membership."""
+        query = select(OrganizationMembership).where(
+            OrganizationMembership.organization_id == organization_id,
+            OrganizationMembership.user_id == user_id,
+        )
+        async with self.session() as ac:
+            result = await ac.execute(query)
+            return result.scalars().one_or_none()
+
     async def invite_user_to_organization(
         self, organization_id: UUID, user_id: UUID
     ) -> OrganizationInvitation:
         """Create an invitation to a given organization for given user."""
 
+        # TODO: use existing function for checking membership existence
         membership_exists_query = (
             exists(OrganizationMembership)
             .where(
