@@ -17,17 +17,16 @@ class Project(BaseDatabaseModel, TimestampedModelMixin):
         server_default=text("gen_random_uuid()"),
     )
 
-    creator_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
-
     title: Mapped[str] = mapped_column(types.String(75), nullable=False)
-
     description: Mapped[str] = mapped_column(
         types.Text(),
         nullable=True,
     )
 
     start_date: Mapped[date] = mapped_column(types.Date(), nullable=True)
-
     finish_date: Mapped[date] = mapped_column(types.Date(), nullable=True)
-
     deadline: Mapped[date] = mapped_column(types.Date(), nullable=True)
+
+    organization_id: Mapped[UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="RESTRICT"), nullable=False
+    )
