@@ -16,4 +16,4 @@ async def test_user_create(ac: AsyncClient, session: AsyncSession):
     ).scalar_one_or_none()
 
     assert user is not None
-    assert response.status_code == 200
+    assert response.status_code == 201
