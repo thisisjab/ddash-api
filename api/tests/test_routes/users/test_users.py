@@ -3,21 +3,13 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.tests.test_routes.conftest import _PASSWORD
 from api.users.models import User
-
-
-@pytest.fixture
-async def created_user(session: AsyncSession) -> User:
-    user = User(email="user@foo.buz", password="very_secret")
-    session.add(user)
-    await session.flush()
-    await session.refresh(user)
-    return user
 
 
 @pytest.mark.anyio
 async def test_user_create(ac: AsyncClient, session: AsyncSession):
-    payload = {"email": "foo@bar.buz", "password": "foobar"}
+    payload = {"email": "foo@bar.buz", "password": "doesn't_matter"}
 
     response = await ac.post("/users", json=payload)
     user = (
@@ -33,6 +25,13 @@ async def test_user_create(ac: AsyncClient, session: AsyncSession):
 async def test_duplicate_user_cannot_be_created(
     ac: AsyncClient, session: AsyncSession, created_user: User
 ):
-    payload = {"email": created_user.email, "password": "very_secret"}
+    payload = {"email": created_user.email, "password": "doesn't_matter"}
     response = await ac.post("/users", json=payload)
     assert response.status_code == 400
+
+
+@pytest.mark.anyio
+async def test_user_can_obtain_access_token(ac: AsyncClient, created_user: User):
+    payload = {"email": created_user.email, "password": _PASSWORD}
+    response = await ac.post("/auth/token", json=payload)
+    assert response.status_code == 200
