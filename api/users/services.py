@@ -5,7 +5,7 @@ from uuid import UUID
 
 import jwt
 from argon2 import PasswordHasher
-from argon2.exceptions import VerifyMismatchError
+from argon2.exceptions import InvalidHashError, VerifyMismatchError
 from fastapi import Depends, HTTPException, status
 from sqlalchemy import func, select
 
@@ -55,7 +55,7 @@ class UserService:
     def verify_password(self, raw_password: str, hashed_password: str) -> bool:
         try:
             return self._ph.verify(hashed_password, raw_password)
-        except VerifyMismatchError:
+        except (VerifyMismatchError, InvalidHashError):
             return False
 
 
