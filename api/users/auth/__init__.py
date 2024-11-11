@@ -24,5 +24,6 @@ class JWTBearer(HTTPBearer):
             return credentials
         else:
             raise HTTPException(
-                status_code=status.H401, detail="Invalid authorization code."
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authorization code.",
             )
