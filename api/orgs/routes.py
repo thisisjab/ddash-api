@@ -22,25 +22,16 @@ router = APIRouter(prefix="", tags=["organizations"])
 
 
 @router.get(
-    "/users/{user_id}/organizations",
+    "/users/me/organizations",
     response_model=PaginatedResponse[OrganizationResponse],
     status_code=status.HTTP_200_OK,
 )
 async def get_organizations(
-    user_id: Annotated[UUID, Path()],
     user: AuthenticatedUser,
     service: Annotated[OrganizationService, Depends()],
     pagination_params: Annotated[PaginationParams, Query()],
 ):
     """Get user organizations (both owned/participated)."""
-
-    # TODO: add participated organizations.
-
-    if not permissions.can_view_user_organizations(request_user=user, owner_id=user_id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-        )
-
     return await service.get_users_organizations(user.id, pagination_params)
 
 
