@@ -41,7 +41,7 @@ async def get_organizations(
             status_code=status.HTTP_403_FORBIDDEN,
         )
 
-    return await service.get_users_organizations(user, pagination_params)
+    return await service.get_users_organizations(user.id, pagination_params)
 
 
 @router.post(

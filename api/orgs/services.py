@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import and_, delete, exists, select
+from sqlalchemy import and_, delete, exists, or_, select
 
 from api.database.dependencies import AsyncSession
 from api.orgs.models import Organization, OrganizationInvitation, OrganizationMembership
@@ -20,14 +20,25 @@ class OrganizationService:
         self.session = session
 
     async def get_users_organizations(
-        self, user: User, pagination_params: PaginationParams
+        self, user_id: UUID, pagination_params: PaginationParams
     ) -> PaginatedResponse[OrganizationResponse]:
         """Get all organizations of the user."""
 
-        # TODO: convert `user` to `user_id` since user object is not needed.
-        # TODO: union current query with participated organizations.
-
-        query = select(Organization).where(Organization.manager_id == user.id)
+        # TODO: add filtering and ordering
+        query = (
+            select(Organization)
+            .outerjoin(
+                OrganizationMembership,
+                OrganizationMembership.organization_id == Organization.id,
+            )
+            .where(
+                or_(
+                    Organization.manager_id == user_id,
+                    OrganizationMembership.user_id == user_id,
+                )
+            )
+            .select_from(Organization)
+        )
         return await PaginatedResponse().paginate(
             query, self.session, pagination_params
         )
