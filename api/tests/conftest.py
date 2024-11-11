@@ -111,6 +111,7 @@ async def session() -> AsyncGenerator:
         AsyncSessionLocal = async_sessionmaker(
             autocommit=False,
             autoflush=False,
+            expire_on_commit=False,
             bind=conn,
             future=True,
         )
