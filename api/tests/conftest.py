@@ -16,7 +16,7 @@ from api.database.setup import (
 )
 from api.main import app
 
-pass  # Trick to load `BaseDatabaseModel` the last,since all database models be imported before base model.
+pass  # Trick to load `BaseDatabaseModel` the last, since all database models must be imported before base model.
 from api.database.models import BaseDatabaseModel  # noqa: E402
 
 
@@ -27,7 +27,7 @@ def anyio_backend() -> str:
 
 @pytest.fixture
 async def ac() -> AsyncGenerator:
-    transport = ASGITransport(app=app)
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
     async with AsyncClient(transport=transport, base_url="https://test") as c:
         yield c
 
@@ -102,7 +102,7 @@ async def session() -> AsyncGenerator:
             settings.DATABASE_PASSWORD,
             settings.DATABASE_HOST,
             settings.DATABASE_PORT,
-            settings.DATABASE_NAME,
+            "test",
         )
     )
     async with async_engine.connect() as conn:
