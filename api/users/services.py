@@ -12,7 +12,7 @@ from sqlalchemy import func, select
 from api.config import settings
 from api.database.dependencies import AsyncSession
 from api.users.models import User
-from api.users.schemas import UserRequest, UserResponse
+from api.users.schemas import UserRequest
 
 
 class UserService:
@@ -20,7 +20,7 @@ class UserService:
         self.session = session
         self._ph = PasswordHasher()
 
-    async def create_user(self, data: UserRequest) -> UserResponse:
+    async def create_user(self, data: UserRequest) -> User:
         if await self.get_user_by_email(data.email):
             raise HTTPException(
                 detail="User already exists.",
@@ -35,7 +35,7 @@ class UserService:
             await ac.flush()
             await ac.refresh(user)
 
-        return UserResponse.model_validate(user)
+        return user
 
     async def get_user_by_id(self, id_: str | UUID) -> User | None:
         async with self.session() as ac:
@@ -64,23 +64,23 @@ class AuthenticationService:
         self.user_service = user_service
 
     def _create_access_token(
-            self, user_id: str | UUID, expiry: timedelta | None = None
+        self, user_id: str | UUID, expiry: timedelta | None = None
     ) -> str:
         payload = {
             "user_id": str(user_id),
             "exp": time.time()
-                   + (
-                       expiry.total_seconds()
-                       if expiry
-                       else settings.ACCESS_TOKEN_EXPIRY_SECONDS
-                   ),
+            + (
+                expiry.total_seconds()
+                if expiry
+                else settings.ACCESS_TOKEN_EXPIRY_SECONDS
+            ),
         }
 
         return jwt.encode(
             payload=payload, key=settings.ACCESS_TOKEN_SECRET_KEY, algorithm="HS256"
         )
 
-    def _get_user_id_from_access_token(self, token: str) -> str:
+    def _get_user_id_from_access_token(self, token: str) -> str | None:
         try:
             decoded_token = jwt.decode(
                 token,
