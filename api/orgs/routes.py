@@ -55,7 +55,7 @@ async def create_organization(
     service: Annotated[OrganizationService, Depends()],
 ):
     """Create an organization with manager set to current user."""
-    return await service.create_organization_for_user(data=data, user=user)
+    return await service.create_organization_for_user(data=data, user_id=user.id)
 
 
 @router.get(
@@ -132,7 +132,7 @@ async def delete_organization(
             status_code=status.HTTP_403_FORBIDDEN,
         )
 
-    await service.delete_organization(organization)
+    await service.delete_organization(organization.id)
 
 
 @router.post(
@@ -169,11 +169,13 @@ async def invite_to_organization(
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    return await organization_service.invite_user_to_organization(organization, user)
+    return await organization_service.invite_user_to_organization(
+        organization.id, user.id
+    )
 
 
 @router.get(
-    "/users/{user_id}/organizations/invitations",
+    "/users/me/organizations/invitations",
     status_code=status.HTTP_200_OK,
     response_model=PaginatedResponse[OrganizationInvitationResponse],
 )
@@ -184,8 +186,6 @@ async def get_user_invitations(
     pagination_params: Annotated[PaginationParams, Query()],
 ):
     """Get all pending invitations for authenticated user."""
-
-    # TODO: remove {user_id} path param since it's useless.
 
     if not permissions.can_view_user_organization_invitations(
         request_user=user, user_id=user_id

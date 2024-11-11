@@ -11,7 +11,6 @@ from api.orgs.schemas import (
     OrganizationPartialUpdateRequest,
     OrganizationResponse,
 )
-from api.users.models import User
 from api.utils.pagination import PaginatedResponse, PaginationParams
 
 
@@ -52,14 +51,12 @@ class OrganizationService:
             return instance.scalars().one_or_none()
 
     async def create_organization_for_user(
-        self, data: OrganizationCreateRequest, user: User
+        self, data: OrganizationCreateRequest, user_id: UUID
     ) -> Organization:
         """Create organization for given user."""
 
-        # TODO: convert `user` to `user_id` since user object is not needed.
-
         async with self.session.begin() as ac:
-            instance = Organization(**data.model_dump(), manager_id=user.id)
+            instance = Organization(**data.model_dump(), manager_id=user_id)
             ac.add(instance)
             await ac.flush()
             await ac.refresh(instance)
@@ -82,35 +79,31 @@ class OrganizationService:
 
         return organization
 
-    async def delete_organization(self, organization: Organization) -> None:
+    async def delete_organization(self, organization_id: UUID) -> None:
         """Delete given organization."""
-        # TODO: convert `organization` to `organization_id` since organization object is not needed.
-        query = delete(Organization).where(Organization.id == organization.id)
+        query = delete(Organization).where(Organization.id == organization_id)
         async with self.session.begin() as ac:
             await ac.execute(query)
             await ac.flush()
 
     async def invite_user_to_organization(
-        self, organization: Organization, user: User
+        self, organization_id: UUID, user_id: UUID
     ) -> OrganizationInvitation:
         """Create an invitation to a given organization for given user."""
-
-        # TODO: convert `user` to `user_id` since user object is not needed.
-        # TODO: convert `organization` to `organization_id` since organization object is not needed.
 
         membership_exists_query = (
             exists(OrganizationMembership)
             .where(
-                OrganizationMembership.organization_id == organization.id,
-                OrganizationMembership.user_id == user.id,
+                OrganizationMembership.organization_id == organization_id,
+                OrganizationMembership.user_id == user_id,
             )
             .select()
         )
         invitation_exists_query = (
             exists(OrganizationInvitation)
             .where(
-                OrganizationInvitation.organization_id == organization.id,
-                OrganizationInvitation.user_id == user.id,
+                OrganizationInvitation.organization_id == organization_id,
+                OrganizationInvitation.user_id == user_id,
             )
             .select()
         )
@@ -135,7 +128,7 @@ class OrganizationService:
                 )
 
             invitation = OrganizationInvitation(
-                organization_id=organization.id, user_id=user.id, accepted=None
+                organization_id=organization_id, user_id=user_id, accepted=None
             )
 
             ac.add(invitation)
