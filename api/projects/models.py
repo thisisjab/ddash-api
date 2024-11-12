@@ -30,6 +30,7 @@ class Project(BaseDatabaseModel, TimestampedModelMixin):
         nullable=True,
     )
 
+    # TODO: add check constraint for checking start_date <= end_date
     start_date: Mapped[date] = mapped_column(types.Date(), nullable=True)
     finish_date: Mapped[date] = mapped_column(types.Date(), nullable=True)
     deadline: Mapped[date] = mapped_column(types.Date(), nullable=True)
