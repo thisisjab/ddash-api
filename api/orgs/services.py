@@ -6,9 +6,7 @@ from sqlalchemy import and_, delete, exists, or_, select
 from api.database.dependencies import AsyncSession
 from api.orgs.models import Organization, OrganizationInvitation, OrganizationMembership
 from api.orgs.schemas import (
-    OrganizationCreateRequest,
     OrganizationInvitationResponse,
-    OrganizationPartialUpdateRequest,
     OrganizationResponse,
 )
 from api.utils.pagination import PaginatedResponse, PaginationParams
@@ -50,27 +48,17 @@ class OrganizationService:
             instance = await ac.execute(query)
             return instance.scalars().one_or_none()
 
-    async def create_organization_for_user(
-        self, data: OrganizationCreateRequest, user_id: UUID
-    ) -> Organization:
+    async def create_organization(self, organization: Organization) -> Organization:
         """Create organization for given user."""
 
         async with self.session.begin() as ac:
-            instance = Organization(**data.model_dump(), manager_id=user_id)
-            ac.add(instance)
+            ac.add(organization)
             await ac.flush()
-            await ac.refresh(instance)
+            await ac.refresh(organization)
+            return organization
 
-        return instance
-
-    async def update_organization(
-        self, organization: Organization, data: OrganizationPartialUpdateRequest
-    ) -> Organization:
+    async def update_organization(self, organization: Organization) -> Organization:
         """Update organization with given data."""
-
-        # TODO: check if there's better way than iterating over data.
-        for k, v in data.model_dump().items():
-            setattr(organization, k, v)
 
         async with self.session.begin() as ac:
             ac.add(organization)

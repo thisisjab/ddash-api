@@ -5,6 +5,7 @@ from fastapi import Body, Depends, HTTPException, Path, Query, status
 from fastapi.routing import APIRouter
 
 from api.orgs import permissions
+from api.orgs.models import Organization
 from api.orgs.schemas import (
     OrganizationCreateRequest,
     OrganizationInvitationResponse,
@@ -46,7 +47,9 @@ async def create_organization(
     service: Annotated[OrganizationService, Depends()],
 ):
     """Create an organization with manager set to current user."""
-    return await service.create_organization_for_user(data=data, user_id=user.id)
+    return await service.create_organization(
+        Organization(**data.model_dump(), manager_id=user.id)
+    )
 
 
 @router.get(
@@ -72,7 +75,12 @@ async def update_organization(
     service: Annotated[OrganizationService, Depends()],
 ):
     """Update an organization by id. Note: user must be the manager."""
-    return await service.update_organization(organization, body)
+
+    # TODO: look for better solution than iterating over body
+    for k, v in body.model_dump().items():
+        setattr(organization, k, v)
+
+    return await service.update_organization(organization)
 
 
 @router.delete(
