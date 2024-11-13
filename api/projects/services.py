@@ -1,14 +1,30 @@
+from uuid import UUID
+
 from fastapi import HTTPException, status
-from sqlalchemy import exists
+from sqlalchemy import exists, select
 
 from api.database.dependencies import AsyncSession
 from api.orgs.models import Organization
 from api.projects.models import Project
+from api.projects.schemas import ProjectResponse
+from api.utils.pagination import PaginatedResponse, PaginationParams
 
 
 class ProjectService:
     def __init__(self, session: AsyncSession):
         self.session = session
+
+    async def get_projects_of_organization(
+        self, organization_id: UUID, pagination_params: PaginationParams
+    ) -> PaginatedResponse[ProjectResponse]:
+        query = (
+            select(Project)
+            .where(Project.organization_id == organization_id)
+            .order_by(Project.modified_at)
+        )
+        return await PaginatedResponse().paginate(
+            query, self.session, pagination_params
+        )
 
     async def create_project(self, project: Project) -> Project:
         async with self.session.begin() as ac:
