@@ -1,14 +1,16 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, Path, status
+from fastapi import Depends, HTTPException, Path, status
 from fastapi.routing import APIRouter
 
 from api.orgs.permissions import (
+    has_organization_change_access,
     has_organization_view_access,
 )
 from api.orgs.services import OrganizationService
 from api.projects.models import Project
+from api.projects.permissions import has_project_view_access
 from api.projects.schemas import ProjectCreateRequest, ProjectResponse
 from api.projects.services import ProjectService
 from api.users.auth.dependencies import AuthenticatedUser
@@ -52,10 +54,35 @@ async def create_project(
     data: ProjectCreateRequest,
 ):
     organization = await organization_service.get_organization(organization_id)
-    await has_organization_view_access(
-        organization=organization, user=user, organization_service=organization_service
-    )
+    await has_organization_change_access(organization=organization, user=user)
 
     return await project_service.create_project(
         Project(**data.model_dump(), organization_id=organization.id, finish_date=None)
     )
+
+
+@router.get(
+    "/projects/{project_id}",
+    response_model=ProjectResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_project(
+    project_id: Annotated[UUID, Path()],
+    organization_service: Annotated[OrganizationService, Depends()],
+    project_service: Annotated[ProjectService, Depends()],
+    user: AuthenticatedUser,
+):
+    project = await project_service.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    organization = await organization_service.get_organization(project.organization_id)
+    await has_project_view_access(
+        organization=organization,
+        user=user,
+        organization_service=organization_service,
+        project_service=project_service,
+        project=project,
+    )
+
+    return project

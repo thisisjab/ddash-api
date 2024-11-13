@@ -52,4 +52,6 @@ async def has_organization_view_access(
     organization_service: OrganizationService,
     user: User,
 ) -> bool:
-    return await can_view_organization(organization=organization, user=user)
+    return await can_view_organization(
+        organization=organization, user=user, organization_service=organization_service
+    )
