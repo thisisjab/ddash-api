@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import exists, select
+from sqlalchemy import delete, exists, select
 
 from api.database.dependencies import AsyncSession
 from api.orgs.models import Organization
@@ -53,6 +53,20 @@ class ProjectService:
             await ac.flush()
             await ac.refresh(project)
             return project
+
+    async def update_project(self, project: Project) -> Project:
+        async with self.session.begin() as ac:
+            ac.add(project)
+            await ac.flush()
+            await ac.refresh(project)
+
+            return project
+
+    async def delete(self, project_id: UUID) -> None:
+        query = delete(Project).where(Project.id == project_id)
+        async with self.session.begin() as ac:
+            await ac.execute(query)
+            await ac.flush()
 
     async def get_project_participant(
         self, project_id: UUID, user_id: UUID

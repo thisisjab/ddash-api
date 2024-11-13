@@ -11,7 +11,11 @@ from api.orgs.permissions import (
 from api.orgs.services import OrganizationService
 from api.projects.models import Project
 from api.projects.permissions import has_project_view_access
-from api.projects.schemas import ProjectCreateRequest, ProjectResponse
+from api.projects.schemas import (
+    ProjectCreateRequest,
+    ProjectResponse,
+    ProjectUpdateRequest,
+)
 from api.projects.services import ProjectService
 from api.users.auth.dependencies import AuthenticatedUser
 from api.utils.pagination import PaginatedResponse, PaginationQueryParams
@@ -86,3 +90,48 @@ async def get_project(
     )
 
     return project
+
+
+@router.put(
+    "/projects/{project_id}",
+    response_model=ProjectResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def update_project(
+    body: ProjectUpdateRequest,
+    organization_service: Annotated[OrganizationService, Depends()],
+    project_id: Annotated[UUID, Path()],
+    project_service: Annotated[ProjectService, Depends()],
+    user: AuthenticatedUser,
+):
+    project = await project_service.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    organization = await organization_service.get_organization(project.organization_id)
+    await has_organization_change_access(organization=organization, user=user)
+
+    for k, v in body.model_dump().items():
+        setattr(project, k, v)
+
+    return await project_service.update_project(project)
+
+
+@router.delete(
+    "/projects/{project_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_project(
+    organization_service: Annotated[OrganizationService, Depends()],
+    project_id: Annotated[UUID, Path()],
+    project_service: Annotated[ProjectService, Depends()],
+    user: AuthenticatedUser,
+):
+    project = await project_service.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    organization = await organization_service.get_organization(project.organization_id)
+    await has_organization_change_access(organization=organization, user=user)
+
+    await project_service.delete(project.id)

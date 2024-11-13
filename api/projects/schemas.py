@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class ProjectCreateRequest(BaseModel):
@@ -9,6 +9,24 @@ class ProjectCreateRequest(BaseModel):
     description: str | None
     start_date: date | None
     deadline: date | None
+
+
+class ProjectUpdateRequest(BaseModel):
+    title: str = Field(min_length=3, max_length=75)
+    description: str | None
+    start_date: date | None
+    finish_date: date | None
+    deadline: date | None
+
+    @model_validator(mode="after")
+    def validate_end_date(self):
+        if not (self.finish_date and self.start_date):
+            return self
+
+        if self.finish_date < self.start_date:
+            raise ValueError("Finish date must be greater than start date.")
+
+        return self
 
 
 class ProjectResponse(BaseModel):
