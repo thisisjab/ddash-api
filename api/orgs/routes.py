@@ -58,9 +58,16 @@ async def create_organization(
     status_code=status.HTTP_200_OK,
 )
 async def get_organization(
-    organization: Annotated[permissions.get_organization_for_view, Depends()],
+    organization_id: Annotated[UUID, Path()],
+    service: Annotated[OrganizationService, Depends()],
+    user: AuthenticatedUser,
 ):
     """Get an organization by id. Note: user must be a member of the organization or the manager."""
+    organization = await service.get_organization(organization_id)
+    await permissions.has_organization_view_access(
+        organization=organization, user=user, organization_service=service
+    )
+
     return organization
 
 
@@ -70,11 +77,16 @@ async def get_organization(
     status_code=status.HTTP_200_OK,
 )
 async def update_organization(
+    organization_id: Annotated[UUID, Path()],
     body: Annotated[OrganizationPartialUpdateRequest, Body()],
-    organization: Annotated[permissions.get_organization_for_modification, Depends()],
     service: Annotated[OrganizationService, Depends()],
+    user: AuthenticatedUser,
 ):
     """Update an organization by id. Note: user must be the manager."""
+    organization = await service.get_organization(organization_id)
+    await permissions.has_organization_change_access(
+        organization=organization, user=user
+    )
 
     # TODO: look for better solution than iterating over body
     for k, v in body.model_dump().items():
@@ -87,10 +99,15 @@ async def update_organization(
     "/organizations/{organization_id}", status_code=status.HTTP_204_NO_CONTENT
 )
 async def delete_organization(
-    organization: Annotated[permissions.get_organization_for_modification, Depends()],
+    organization_id: Annotated[UUID, Path()],
     service: Annotated[OrganizationService, Depends()],
+    user: AuthenticatedUser,
 ):
     """Delete an organization by id. This action removes all memberships and invitations. Note: user must be the manager."""
+    organization = await service.get_organization(organization_id)
+    await permissions.has_organization_change_access(
+        organization=organization, user=user
+    )
     await service.delete_organization(organization.id)
 
 
@@ -98,23 +115,28 @@ async def delete_organization(
     "/organizations/{organization_id}/invite/", status_code=status.HTTP_204_NO_CONTENT
 )
 async def invite_to_organization(
+    organization_id: Annotated[UUID, Path()],
     organization_service: Annotated[OrganizationService, Depends()],
     user_service: Annotated[UserService, Depends()],
-    organization: Annotated[permissions.get_organization_for_modification, Depends()],
     body: Annotated[OrganizationSendInvitationRequest, Body()],
+    user: AuthenticatedUser,
 ):
     """Invite an existing user to current organization with email. Note: inviter must be the manager."""
 
-    # TODO: prohibit inviting self
-    user = await user_service.get_user_by_email(body.email)
-    if not user:
+    user_to_invite = await user_service.get_user_by_email(body.email)
+    if not user_to_invite:
         raise HTTPException(
             detail="User with given email does not exist.",
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
+    organization = await organization_service.get_organization(organization_id)
+    await permissions.has_organization_change_access(
+        organization=organization, user=user
+    )
+
     return await organization_service.invite_user_to_organization(
-        organization.id, user.id
+        organization.id, user_to_invite.id
     )
 
 

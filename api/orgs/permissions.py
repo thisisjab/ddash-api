@@ -1,45 +1,55 @@
-from typing import Annotated
-from uuid import UUID
-
-from fastapi import Depends, HTTPException, Path, status
-
 from api.orgs.models import Organization
 from api.orgs.services import OrganizationService
-from api.users.auth.dependencies import AuthenticatedUser
+from api.users.models import User
+from api.utils.permissions import permission_decorator
 
 
-async def get_organization_for_modification(
-    organization_id: Annotated[UUID, Path()],
-    service: Annotated[OrganizationService, Depends()],
-    user: AuthenticatedUser,
-) -> Organization:
-    organization = await service.get_organization(organization_id)
-
+async def can_modify_organization(
+    *,
+    organization: Organization,
+    user: User,
+) -> bool:
     if not organization:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+        return False
 
     if organization.manager_id == user.id:
-        return organization
+        return True
 
-    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    return False
 
 
-async def get_organization_for_view(
-    organization_id: Annotated[UUID, Path()],
-    service: Annotated[OrganizationService, Depends()],
-    user: AuthenticatedUser,
-) -> Organization:
-    organization = await service.get_organization(organization_id)
+@permission_decorator(raise_exception=True)
+async def has_organization_change_access(
+    *,
+    organization: Organization,
+    user: User,
+) -> bool:
+    return await can_modify_organization(organization=organization, user=user)
 
+
+async def can_view_organization(
+    organization: Organization,
+    organization_service: OrganizationService,
+    user: User,
+) -> bool:
     if not organization:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+        return False
 
     if organization.manager_id == user.id:
-        return organization
+        return True
 
-    membership = await service.get_membership(organization.id, user.id)
+    membership = await organization_service.get_membership(organization.id, user.id)
 
     if membership is not None:
-        return organization
+        return True
 
-    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    return False
+
+
+@permission_decorator(raise_exception=True)
+async def has_organization_view_access(
+    organization: Organization,
+    organization_service: OrganizationService,
+    user: User,
+) -> bool:
+    return await can_view_organization(organization=organization, user=user)
