@@ -7,7 +7,7 @@ from api.database.dependencies import AsyncSession
 from api.orgs.models import Organization
 from api.projects.models import Project, ProjectParticipant
 from api.projects.schemas import ProjectResponse
-from api.utils.pagination import PaginatedResponse, PaginationParams
+from api.utils.pagination import PaginatedResponse, PaginationParams, paginate
 
 
 class ProjectService:
@@ -22,9 +22,7 @@ class ProjectService:
             .where(Project.organization_id == organization_id)
             .order_by(Project.modified_at)
         )
-        return await PaginatedResponse().paginate(
-            query, self.session, pagination_params
-        )
+        return await paginate(query, self.session, pagination_params)
 
     async def get_project(self, project_id: UUID) -> Project:
         query = select(Project).where(Project.id == project_id)

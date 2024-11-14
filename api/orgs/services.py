@@ -9,7 +9,7 @@ from api.orgs.schemas import (
     OrganizationInvitationResponse,
     OrganizationResponse,
 )
-from api.utils.pagination import PaginatedResponse, PaginationParams
+from api.utils.pagination import PaginatedResponse, PaginationParams, paginate
 
 
 class OrganizationService:
@@ -36,9 +36,7 @@ class OrganizationService:
             )
             .select_from(Organization)
         )
-        return await PaginatedResponse().paginate(
-            query, self.session, pagination_params
-        )
+        return await paginate(query, self.session, pagination_params)
 
     async def get_organization(self, organization_id: UUID) -> Organization:
         """Get single organization with id."""
@@ -147,9 +145,7 @@ class OrganizationService:
             OrganizationInvitation.user_id == user_id,
             OrganizationInvitation.accepted == None,  # noqa: E711
         )
-        return await PaginatedResponse().paginate(
-            query, self.session, pagination_params
-        )
+        return await paginate(query, self.session, pagination_params)
 
     async def get_user_pending_invitation_with_organization_id(
         self, user_id: UUID, organization_id: UUID
