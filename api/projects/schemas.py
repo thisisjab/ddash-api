@@ -3,6 +3,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from api.projects.enums import ProjectParticipationType
+from api.users.schemas import UserResponse
+
 
 class ProjectCreateRequest(BaseModel):
     title: str = Field(min_length=3, max_length=75)
@@ -41,3 +44,17 @@ class ProjectResponse(BaseModel):
     modified_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ProjectParticipantCreateRequest(BaseModel):
+    participation_type: ProjectParticipationType
+    user_id: UUID
+
+
+class ProjectParticipantUpdateRequest(BaseModel):
+    participation_type: ProjectParticipationType
+
+
+class ProjectParticipantResponse(BaseModel):
+    participation_type: ProjectParticipationType
+    user: UserResponse

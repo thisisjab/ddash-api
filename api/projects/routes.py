@@ -9,10 +9,13 @@ from api.orgs.permissions import (
     has_organization_view_access,
 )
 from api.orgs.services import OrganizationService
-from api.projects.models import Project
+from api.projects.models import Project, ProjectParticipant
 from api.projects.permissions import has_project_view_access
 from api.projects.schemas import (
     ProjectCreateRequest,
+    ProjectParticipantCreateRequest,
+    ProjectParticipantResponse,
+    ProjectParticipantUpdateRequest,
     ProjectResponse,
     ProjectUpdateRequest,
 )
@@ -135,3 +138,108 @@ async def delete_project(
     await has_organization_change_access(organization=organization, user=user)
 
     await project_service.delete(project.id)
+
+
+@router.get(
+    "/projects/{project_id}/participants",
+    response_model=PaginatedResponse[ProjectParticipantResponse],
+    status_code=status.HTTP_200_OK,
+)
+async def get_project_participants(
+    organization_service: Annotated[OrganizationService, Depends()],
+    pagination_params: PaginationQueryParams,
+    project_id: Annotated[UUID, Path()],
+    project_service: Annotated[ProjectService, Depends()],
+    user: AuthenticatedUser,
+):
+    project = await project_service.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    organization = await organization_service.get_organization(project.organization_id)
+    await has_organization_change_access(organization=organization, user=user)
+
+    return await project_service.get_participants_with_user(
+        project.id, pagination_params
+    )
+
+
+@router.post(
+    "/projects/{project_id}/participants",
+    response_model=ProjectParticipantResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_project_participant(
+    body: ProjectParticipantCreateRequest,
+    organization_service: Annotated[OrganizationService, Depends()],
+    project_id: Annotated[UUID, Path()],
+    project_service: Annotated[ProjectService, Depends()],
+    user: AuthenticatedUser,
+):
+    project = await project_service.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    organization = await organization_service.get_organization(project.organization_id)
+    await has_organization_change_access(organization=organization, user=user)
+
+    return await project_service.create_project_participant(
+        ProjectParticipant(**body.model_dump(), project_id=project.id)
+    )
+
+
+@router.put(
+    "/projects/{project_id}/participants/{user_id}",
+    response_model=ProjectParticipantResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def update_project_participant(
+    body: ProjectParticipantUpdateRequest,
+    organization_service: Annotated[OrganizationService, Depends()],
+    project_id: Annotated[UUID, Path()],
+    project_service: Annotated[ProjectService, Depends()],
+    user: AuthenticatedUser,
+    user_id: Annotated[UUID, Path()],
+):
+    participant_and_project = await project_service.get_participant_with_project(
+        project_id, user_id
+    )
+
+    if not participant_and_project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    participation, project = participant_and_project
+
+    organization = await organization_service.get_organization(project.organization_id)
+    await has_organization_change_access(organization=organization, user=user)
+
+    participation.participation_type = body.participation_type
+    return await project_service.update_project_participant(participation)
+
+
+@router.delete(
+    "/projects/{project_id}/participants/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_project_participant(
+    organization_service: Annotated[OrganizationService, Depends()],
+    project_id: Annotated[UUID, Path()],
+    project_service: Annotated[ProjectService, Depends()],
+    user: AuthenticatedUser,
+    user_id: Annotated[UUID, Path()],
+):
+    participant_and_project = await project_service.get_participant_with_project(
+        project_id, user_id
+    )
+
+    if not participant_and_project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    participation, project = participant_and_project
+
+    organization = await organization_service.get_organization(project.organization_id)
+    await has_organization_change_access(organization=organization, user=user)
+
+    await project_service.delete_project_participant(
+        participation.project_id, participation.user_id
+    )
