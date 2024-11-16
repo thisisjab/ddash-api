@@ -7,6 +7,7 @@ from api.config import settings
 from api.logging import configure_logging
 from api.orgs.routes import router as orgs_router
 from api.projects.routes import router as projects_router
+from api.tasks.routes import router as tasks_router
 from api.users.routes import router as users_router
 
 
@@ -30,3 +31,4 @@ app.add_middleware(CorrelationIdMiddleware)
 app.include_router(users_router)
 app.include_router(orgs_router)
 app.include_router(projects_router)
+app.include_router(tasks_router)
