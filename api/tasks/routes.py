@@ -5,12 +5,13 @@ from fastapi import Depends, HTTPException, Path, status
 from fastapi.routing import APIRouter
 
 from api.orgs.services import OrganizationService
-from api.projects.permissions import has_project_view_access
+from api.projects.permissions import ProjectPermissionService
 from api.projects.services import ProjectService
 from api.tasks.schemas import TaskPaginationItem
 from api.tasks.services import TaskService
 from api.users.auth.dependencies import AuthenticatedUser
 from api.utils.pagination import PaginatedResponse, PaginationQueryParams
+from api.utils.permissions import check_permission
 
 router = APIRouter(prefix="", tags=["Tasks"])
 
@@ -25,6 +26,7 @@ async def get_project_tasks(
     pagination_params: PaginationQueryParams,
     project_id: Annotated[UUID, Path()],
     project_service: Annotated[ProjectService, Depends()],
+    permission_service: Annotated[ProjectPermissionService, Depends()],
     task_service: Annotated[TaskService, Depends()],
     user: AuthenticatedUser,
 ):
@@ -33,12 +35,11 @@ async def get_project_tasks(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     organization = await organization_service.get_organization(project.organization_id)
-    await has_project_view_access(
+    await check_permission(
+        permission_service.is_project_participant_or_organization_manager,
         organization=organization,
-        user=user,
-        organization_service=organization_service,
-        project_service=project_service,
         project=project,
+        user=user,
     )
 
     return await task_service.get_tasks_for_project(project_id, pagination_params)

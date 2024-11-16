@@ -1,34 +1,23 @@
-import functools
-from typing import Callable
+from typing import Annotated, Any, Callable
 
 from fastapi import HTTPException, status
 
 
-def permission_decorator(raise_exception: bool = True) -> Callable:
-    """Global decorator for permission checker functions.
+async def check_permission(
+    permission: Callable[..., Any], **kwargs: Annotated[Any, "kwargs from permission"]
+) -> None:
+    """Raise exception if permission is not satisfied.
 
     Args:
-        raise_exception (bool): Whether to raise a `HTTPException(status_code=403)`
-                                 instead of returning False.
+        permission (Callable): Permission callable.
 
-    Returns:
-        callable: The decorator function.
+        kwargs (Any): Kwargs to call permission callable with.
+
+    Raises:
+        HTTPException: If permission denied.
     """
 
-    # NOTE: func must be async
-    def decorator(func: Callable) -> Callable:
-        @functools.wraps(func)
-        async def wrapper(*args, **kwargs):
-            result = await func(*args, **kwargs)
+    allowed = await permission(**kwargs)
 
-            if not result:
-                if raise_exception:
-                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
-
-                return False
-
-            return result
-
-        return wrapper
-
-    return decorator
+    if not allowed:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)

@@ -4,8 +4,8 @@ from uuid import UUID
 from fastapi import Body, Depends, HTTPException, Path, Query, status
 from fastapi.routing import APIRouter
 
-from api.orgs import permissions
 from api.orgs.models import Organization
+from api.orgs.permissions import OrganizationPermissionService
 from api.orgs.schemas import (
     OrganizationCreateRequest,
     OrganizationInvitationResponse,
@@ -18,6 +18,7 @@ from api.orgs.services import OrganizationService
 from api.users.auth.dependencies import AuthenticatedUser
 from api.users.services import UserService
 from api.utils.pagination import PaginatedResponse, PaginationParams
+from api.utils.permissions import check_permission
 
 router = APIRouter(prefix="", tags=["organizations"])
 
@@ -59,13 +60,16 @@ async def create_organization(
 )
 async def get_organization(
     organization_id: Annotated[UUID, Path()],
-    service: Annotated[OrganizationService, Depends()],
+    organization_service: Annotated[OrganizationService, Depends()],
+    permission_service: Annotated[OrganizationPermissionService, Depends()],
     user: AuthenticatedUser,
 ):
     """Get an organization by id. Note: user must be a member of the organization or the manager."""
-    organization = await service.get_organization(organization_id)
-    await permissions.has_organization_view_access(
-        organization=organization, user=user, organization_service=service
+    organization = await organization_service.get_organization(organization_id)
+    await check_permission(
+        permission_service.is_organization_member_or_manager,
+        organization=organization,
+        user=user,
     )
 
     return organization
@@ -79,20 +83,24 @@ async def get_organization(
 async def update_organization(
     organization_id: Annotated[UUID, Path()],
     body: Annotated[OrganizationPartialUpdateRequest, Body()],
-    service: Annotated[OrganizationService, Depends()],
+    organization_service: Annotated[OrganizationService, Depends()],
+    permission_service: Annotated[OrganizationPermissionService, Depends()],
     user: AuthenticatedUser,
 ):
     """Update an organization by id. Note: user must be the manager."""
-    organization = await service.get_organization(organization_id)
-    await permissions.has_organization_change_access(
-        organization=organization, user=user
+    organization = await organization_service.get_organization(organization_id)
+    if not organization:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    await check_permission(
+        permission_service.is_organization_manager, organization=organization, user=user
     )
 
     # TODO: look for better solution than iterating over body
     for k, v in body.model_dump().items():
         setattr(organization, k, v)
 
-    return await service.update_organization(organization)
+    return await organization_service.update_organization(organization)
 
 
 @router.delete(
@@ -101,13 +109,18 @@ async def update_organization(
 async def delete_organization(
     organization_id: Annotated[UUID, Path()],
     service: Annotated[OrganizationService, Depends()],
+    permission_service: Annotated[OrganizationPermissionService, Depends()],
     user: AuthenticatedUser,
 ):
     """Delete an organization by id. This action removes all memberships and invitations. Note: user must be the manager."""
     organization = await service.get_organization(organization_id)
-    await permissions.has_organization_change_access(
-        organization=organization, user=user
+    if not organization:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    await check_permission(
+        permission_service.is_organization_manager, organization=organization, user=user
     )
+
     await service.delete_organization(organization.id)
 
 
@@ -115,11 +128,12 @@ async def delete_organization(
     "/organizations/{organization_id}/invite/", status_code=status.HTTP_204_NO_CONTENT
 )
 async def invite_to_organization(
+    body: Annotated[OrganizationSendInvitationRequest, Body()],
     organization_id: Annotated[UUID, Path()],
     organization_service: Annotated[OrganizationService, Depends()],
-    user_service: Annotated[UserService, Depends()],
-    body: Annotated[OrganizationSendInvitationRequest, Body()],
+    permission_service: Annotated[OrganizationPermissionService, Depends()],
     user: AuthenticatedUser,
+    user_service: Annotated[UserService, Depends()],
 ):
     """Invite an existing user to current organization with email. Note: inviter must be the manager."""
 
@@ -131,8 +145,11 @@ async def invite_to_organization(
         )
 
     organization = await organization_service.get_organization(organization_id)
-    await permissions.has_organization_change_access(
-        organization=organization, user=user
+    if not organization:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    await check_permission(
+        permission_service.is_organization_manager, organization=organization, user=user
     )
 
     return await organization_service.invite_user_to_organization(
@@ -146,9 +163,9 @@ async def invite_to_organization(
     response_model=PaginatedResponse[OrganizationInvitationResponse],
 )
 async def get_user_invitations(
-    user: AuthenticatedUser,
-    service: Annotated[OrganizationService, Depends()],
     pagination_params: Annotated[PaginationParams, Query()],
+    service: Annotated[OrganizationService, Depends()],
+    user: AuthenticatedUser,
 ):
     """Get all pending invitations for authenticated user."""
     return await service.get_user_invitations(user.id, pagination_params)

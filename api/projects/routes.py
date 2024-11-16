@@ -4,13 +4,10 @@ from uuid import UUID
 from fastapi import Depends, HTTPException, Path, status
 from fastapi.routing import APIRouter
 
-from api.orgs.permissions import (
-    has_organization_change_access,
-    has_organization_view_access,
-)
+from api.orgs.permissions import OrganizationPermissionService
 from api.orgs.services import OrganizationService
 from api.projects.models import Project, ProjectParticipant
-from api.projects.permissions import has_project_view_access
+from api.projects.permissions import ProjectPermissionService
 from api.projects.schemas import (
     ProjectCreateRequest,
     ProjectParticipantCreateRequest,
@@ -22,6 +19,7 @@ from api.projects.schemas import (
 from api.projects.services import ProjectService
 from api.users.auth.dependencies import AuthenticatedUser
 from api.utils.pagination import PaginatedResponse, PaginationQueryParams
+from api.utils.permissions import check_permission
 
 router = APIRouter(prefix="", tags=["Projects"])
 
@@ -36,11 +34,14 @@ async def get_projects(
     organization_service: Annotated[OrganizationService, Depends()],
     pagination_params: PaginationQueryParams,
     project_service: Annotated[ProjectService, Depends()],
+    permission_service: Annotated[OrganizationPermissionService, Depends()],
     user: AuthenticatedUser,
 ):
     organization = await organization_service.get_organization(organization_id)
-    await has_organization_view_access(
-        organization=organization, user=user, organization_service=organization_service
+    await check_permission(
+        permission_service.is_organization_member_or_manager,
+        organization=organization,
+        user=user,
     )
 
     return await project_service.get_projects_of_organization(
@@ -57,13 +58,17 @@ async def create_project(
     organization_id: Annotated[UUID, Path()],
     organization_service: Annotated[OrganizationService, Depends()],
     project_service: Annotated[ProjectService, Depends()],
+    permission_service: Annotated[OrganizationPermissionService, Depends()],
     user: AuthenticatedUser,
     data: ProjectCreateRequest,
 ):
     organization = await organization_service.get_organization(organization_id)
-    await has_organization_change_access(organization=organization, user=user)
+    await check_permission(
+        permission_service.is_organization_manager, organization=organization, user=user
+    )
 
     return await project_service.create_project(
+        # TODO: fix typing error for sqlalchemy model
         Project(**data.model_dump(), organization_id=organization.id, finish_date=None)
     )
 
@@ -77,6 +82,7 @@ async def get_project(
     project_id: Annotated[UUID, Path()],
     organization_service: Annotated[OrganizationService, Depends()],
     project_service: Annotated[ProjectService, Depends()],
+    permission_service: Annotated[ProjectPermissionService, Depends()],
     user: AuthenticatedUser,
 ):
     project = await project_service.get_project(project_id)
@@ -84,12 +90,11 @@ async def get_project(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     organization = await organization_service.get_organization(project.organization_id)
-    await has_project_view_access(
+    await check_permission(
+        permission_service.is_project_participant_or_organization_manager,
+        project=project,
         organization=organization,
         user=user,
-        organization_service=organization_service,
-        project_service=project_service,
-        project=project,
     )
 
     return project
@@ -105,6 +110,7 @@ async def update_project(
     organization_service: Annotated[OrganizationService, Depends()],
     project_id: Annotated[UUID, Path()],
     project_service: Annotated[ProjectService, Depends()],
+    permission_service: Annotated[OrganizationPermissionService, Depends()],
     user: AuthenticatedUser,
 ):
     project = await project_service.get_project(project_id)
@@ -112,7 +118,11 @@ async def update_project(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     organization = await organization_service.get_organization(project.organization_id)
-    await has_organization_change_access(organization=organization, user=user)
+    await check_permission(
+        permission_service.is_organization_manager,
+        organization=organization,
+        user=user,
+    )
 
     for k, v in body.model_dump().items():
         setattr(project, k, v)
@@ -128,6 +138,7 @@ async def delete_project(
     organization_service: Annotated[OrganizationService, Depends()],
     project_id: Annotated[UUID, Path()],
     project_service: Annotated[ProjectService, Depends()],
+    permission_service: Annotated[OrganizationPermissionService, Depends()],
     user: AuthenticatedUser,
 ):
     project = await project_service.get_project(project_id)
@@ -135,8 +146,11 @@ async def delete_project(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     organization = await organization_service.get_organization(project.organization_id)
-    await has_organization_change_access(organization=organization, user=user)
-
+    await check_permission(
+        permission_service.is_organization_manager,
+        organization=organization,
+        user=user,
+    )
     await project_service.delete(project.id)
 
 
@@ -150,6 +164,7 @@ async def get_project_participants(
     pagination_params: PaginationQueryParams,
     project_id: Annotated[UUID, Path()],
     project_service: Annotated[ProjectService, Depends()],
+    permission_service: Annotated[ProjectPermissionService, Depends()],
     user: AuthenticatedUser,
 ):
     project = await project_service.get_project(project_id)
@@ -157,7 +172,12 @@ async def get_project_participants(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     organization = await organization_service.get_organization(project.organization_id)
-    await has_organization_change_access(organization=organization, user=user)
+    await check_permission(
+        permission_service.is_project_participant_or_organization_manager,
+        organization=organization,
+        project=project,
+        user=user,
+    )
 
     return await project_service.get_participants_with_user(
         project.id, pagination_params
@@ -174,6 +194,7 @@ async def create_project_participant(
     organization_service: Annotated[OrganizationService, Depends()],
     project_id: Annotated[UUID, Path()],
     project_service: Annotated[ProjectService, Depends()],
+    permission_service: Annotated[OrganizationPermissionService, Depends()],
     user: AuthenticatedUser,
 ):
     project = await project_service.get_project(project_id)
@@ -181,7 +202,11 @@ async def create_project_participant(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     organization = await organization_service.get_organization(project.organization_id)
-    await has_organization_change_access(organization=organization, user=user)
+    await check_permission(
+        permission_service.is_organization_manager,
+        organization=organization,
+        user=user,
+    )
 
     return await project_service.create_project_participant(
         ProjectParticipant(**body.model_dump(), project_id=project.id)
@@ -198,6 +223,7 @@ async def update_project_participant(
     organization_service: Annotated[OrganizationService, Depends()],
     project_id: Annotated[UUID, Path()],
     project_service: Annotated[ProjectService, Depends()],
+    permission_service: Annotated[OrganizationPermissionService, Depends()],
     user: AuthenticatedUser,
     user_id: Annotated[UUID, Path()],
 ):
@@ -211,9 +237,15 @@ async def update_project_participant(
     participation, project = participant_and_project
 
     organization = await organization_service.get_organization(project.organization_id)
-    await has_organization_change_access(organization=organization, user=user)
+    await check_permission(
+        permission_service.is_organization_manager,
+        organization=organization,
+        user=user,
+    )
 
-    participation.participation_type = body.participation_type
+    participation.participation_type = (
+        body.participation_type
+    )  # TODO: fix type annotation
     return await project_service.update_project_participant(participation)
 
 
@@ -225,6 +257,7 @@ async def delete_project_participant(
     organization_service: Annotated[OrganizationService, Depends()],
     project_id: Annotated[UUID, Path()],
     project_service: Annotated[ProjectService, Depends()],
+    permission_service: Annotated[OrganizationPermissionService, Depends()],
     user: AuthenticatedUser,
     user_id: Annotated[UUID, Path()],
 ):
@@ -238,7 +271,11 @@ async def delete_project_participant(
     participation, project = participant_and_project
 
     organization = await organization_service.get_organization(project.organization_id)
-    await has_organization_change_access(organization=organization, user=user)
+    await check_permission(
+        permission_service.is_organization_manager,
+        organization=organization,
+        user=user,
+    )
 
     await project_service.delete_project_participant(
         participation.project_id, participation.user_id

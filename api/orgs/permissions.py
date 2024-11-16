@@ -1,57 +1,44 @@
+from typing import Annotated
+
+from fastapi import Depends
+
 from api.orgs.models import Organization
 from api.orgs.services import OrganizationService
 from api.users.models import User
-from api.utils.permissions import permission_decorator
 
 
-async def can_modify_organization(
-    *,
-    organization: Organization,
-    user: User,
-) -> bool:
-    if not organization:
+class OrganizationPermissionService:
+    def __init__(
+        self, organization_service: Annotated[OrganizationService, Depends()]
+    ) -> None:
+        self.organization_service = organization_service
+
+    async def is_organization_manager(
+        self, organization: Organization, user: User
+    ) -> bool:
+        if organization and user and organization.manager_id == user.id:
+            return True
+
         return False
 
-    if organization.manager_id == user.id:
-        return True
+    async def is_organization_member(
+        self, organization: Organization, user: User
+    ) -> bool:
+        if not (organization and user):
+            return False
 
-    return False
+        membership = await self.organization_service.get_membership(
+            organization_id=organization.id, user_id=user.id
+        )
 
+        if membership:
+            return True
 
-@permission_decorator(raise_exception=True)
-async def has_organization_change_access(
-    *,
-    organization: Organization,
-    user: User,
-) -> bool:
-    return await can_modify_organization(organization=organization, user=user)
-
-
-async def can_view_organization(
-    organization: Organization,
-    organization_service: OrganizationService,
-    user: User,
-) -> bool:
-    if not organization:
         return False
 
-    if organization.manager_id == user.id:
-        return True
-
-    membership = await organization_service.get_membership(organization.id, user.id)
-
-    if membership is not None:
-        return True
-
-    return False
-
-
-@permission_decorator(raise_exception=True)
-async def has_organization_view_access(
-    organization: Organization,
-    organization_service: OrganizationService,
-    user: User,
-) -> bool:
-    return await can_view_organization(
-        organization=organization, user=user, organization_service=organization_service
-    )
+    async def is_organization_member_or_manager(
+        self, organization: Organization, user: User
+    ) -> bool:
+        return await self.is_organization_manager(
+            organization, user
+        ) or await self.is_organization_member(organization, user)
