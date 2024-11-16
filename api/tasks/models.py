@@ -1,9 +1,11 @@
-from datetime import date
+from datetime import date, datetime
 from uuid import UUID
 
 from sqlalchemy import (
     CheckConstraint,
     ForeignKey,
+    PrimaryKeyConstraint,
+    func,
     text,
     types,
 )
@@ -44,3 +46,16 @@ class Task(BaseDatabaseModel, TimestampedModelMixin):
             "finish_date_present_if_done",
         ),
     )
+
+
+class TaskAssignee(BaseDatabaseModel):
+    __tablename__ = "task_assignees"
+
+    task_id: Mapped[UUID] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        init=False,
+        server_default=func.now(),
+    )
+
+    __table_args__ = (PrimaryKeyConstraint("task_id", "user_id"),)
