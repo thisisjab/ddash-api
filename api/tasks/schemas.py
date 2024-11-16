@@ -1,9 +1,16 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, EmailStr
 
 from api.tasks.enums import TaskState
+
+
+class TaskPaginationItemUser(BaseModel):
+    id: UUID
+    email: EmailStr
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TaskPaginationItem(BaseModel):
@@ -15,7 +22,8 @@ class TaskPaginationItem(BaseModel):
     deadline: datetime | None
     state: TaskState
     priority: int
+    assignees: list[TaskPaginationItemUser]
     created_at: datetime
     modified_at: datetime
 
-    # TODO: add assignees later
+    model_config = ConfigDict(from_attributes=True)
