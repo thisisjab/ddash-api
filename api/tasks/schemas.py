@@ -13,7 +13,7 @@ class TaskPaginationItemUser(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class TaskPaginatioinItem(BaseModel):
+class TaskPaginationItem(BaseModel):
     id: UUID
     title: str
     description: str | None

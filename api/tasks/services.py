@@ -6,7 +6,7 @@ from api.database.dependencies import AsyncSession
 from api.orgs.models import Organization
 from api.projects.models import Project
 from api.tasks.models import Task, TaskAssignee
-from api.tasks.schemas import TaskPaginatioinItem
+from api.tasks.schemas import TaskPaginationItem
 from api.users.models import User
 from api.utils.pagination import PaginatedResponse, PaginationParams, paginate
 
@@ -17,7 +17,7 @@ class TaskService:
 
     async def get_tasks_for_project(
         self, project_id: UUID, pagination_params: PaginationParams
-    ) -> PaginatedResponse[TaskPaginatioinItem]:
+    ) -> PaginatedResponse[TaskPaginationItem]:
         tasks_query = (
             select(Task)
             .where(Task.project_id == project_id)
@@ -57,7 +57,7 @@ class TaskService:
                     task_assignees.append(user)
 
             t.assignees = task_assignees
-            items.append(TaskPaginatioinItem.model_validate(t))
+            items.append(TaskPaginationItem.model_validate(t))
 
         paginated_result["items"] = items
 

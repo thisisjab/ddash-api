@@ -10,7 +10,7 @@ from api.projects.services import ProjectService
 from api.tasks.models import Task
 from api.tasks.schemas import (
     TaskCreateRequest,
-    TaskPaginatioinItem,
+    TaskPaginationItem,
     TaskSingleResponse,
     TaskUpdateRequest,
 )
@@ -24,7 +24,7 @@ router = APIRouter(prefix="", tags=["Tasks"])
 
 @router.get(
     "/projects/{project_id}/tasks",
-    response_model=PaginatedResponse[TaskPaginatioinItem],
+    response_model=PaginatedResponse[TaskPaginationItem],
     status_code=status.HTTP_200_OK,
 )
 async def get_project_tasks(
@@ -53,7 +53,7 @@ async def get_project_tasks(
 
 @router.post(
     "/projects/{project_id}/tasks",
-    response_model=TaskPaginatioinItem,
+    response_model=TaskPaginationItem,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_task(
