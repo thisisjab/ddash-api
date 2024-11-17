@@ -4,6 +4,7 @@ from fastapi import Depends
 
 from api.orgs.models import Organization
 from api.orgs.permissions import OrganizationPermissionService
+from api.projects.enums import ProjectParticipationType
 from api.projects.models import Project
 from api.projects.services import ProjectService
 from api.users.models import User
@@ -43,3 +44,26 @@ class ProjectPermissionService:
         return await self.organization_permissions_service.is_organization_manager(
             organization=organization, user=user
         ) or await self.is_project_participant(project=project, user=user)
+
+    async def is_project_contributor(self, project: Project, user: User) -> bool:
+        if not (project and user):
+            return False
+
+        membership = await self.project_service.get_project_participant(
+            project_id=project.id, user_id=user.id
+        )
+
+        if (
+            membership
+            and membership.participation_type == ProjectParticipationType.CONTRIBUTOR
+        ):
+            return True
+
+        return False
+
+    async def is_project_contributor_or_organization_admin(
+        self, project: Project, user: User, organization: Organization
+    ) -> bool:
+        return await self.organization_permissions_service.is_organization_manager(
+            organization=organization, user=user
+        ) or await self.is_project_contributor(project=project, user=user)

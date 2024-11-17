@@ -12,6 +12,7 @@ from api.tasks.schemas import (
     TaskCreateRequest,
     TaskPaginationItem,
     TaskSingleResponse,
+    TaskStateUpdateRequest,
     TaskUpdateRequest,
 )
 from api.tasks.services import TaskService
@@ -179,3 +180,40 @@ async def delete_task(
     )
 
     await task_service.delete_task_and_assignees(task_id)
+
+
+@router.put(
+    "/tasks/{task_id}/state",
+    response_model=TaskSingleResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def set_task_state(
+    body: TaskStateUpdateRequest,
+    task_id: Annotated[UUID, Path()],
+    permission_service: Annotated[ProjectPermissionService, Depends()],
+    task_service: Annotated[TaskService, Depends()],
+    user: AuthenticatedUser,
+):
+    result = await task_service.get_task_with_project_and_organization_and_assignees(
+        task_id
+    )
+
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    task, assignees, project, organization = result
+    await check_permission(
+        permission_service.is_project_contributor_or_organization_admin,
+        organization=organization,
+        project=project,
+        user=user,
+    )
+
+    for k, v in body.model_dump().items():
+        setattr(task, k, v)
+
+    task = await task_service.update_task(task)
+
+    setattr(task, "assignees", assignees)
+
+    return task

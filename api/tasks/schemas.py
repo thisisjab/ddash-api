@@ -108,3 +108,20 @@ class TaskUpdateRequest(BaseModel):
             raise ValueError("Finish date must not be set if task is not completed.")
 
         return self
+
+
+class TaskStateUpdateRequest(BaseModel):
+    state: TaskState
+    finish_date: datetime | None
+
+    @model_validator(mode="after")
+    def validate_states(self):
+        # When state is completed, finish_date must be set.
+        if self.state == TaskState.COMPLETED and not self.finish_date:
+            raise ValueError("Finish date must be set if task is completed.")
+
+        # When state is NOT completed, finish_date must NOT be set.
+        if self.state != TaskState.COMPLETED and self.finish_date:
+            raise ValueError("Finish date must not be set if task is not completed.")
+
+        return self
