@@ -125,3 +125,7 @@ class TaskStateUpdateRequest(BaseModel):
             raise ValueError("Finish date must not be set if task is not completed.")
 
         return self
+
+
+class TaskAssigneeCreateOrDeleteRequest(BaseModel):
+    user_id: UUID

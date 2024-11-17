@@ -1,10 +1,12 @@
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from fastapi import HTTPException, status
+from sqlalchemy import delete, exists, select
 
 from api.database.dependencies import AsyncSession
 from api.orgs.models import Organization
-from api.projects.models import Project
+from api.projects.enums import ProjectParticipationType
+from api.projects.models import Project, ProjectParticipant
 from api.tasks.models import Task, TaskAssignee
 from api.tasks.schemas import TaskPaginationItem
 from api.users.models import User
@@ -121,10 +123,62 @@ class TaskService:
 
             return task, assignees, project, organization
 
-    async def get_task_assignee(self, task: Task, user: User) -> TaskAssignee | None:
+    async def get_task_assignee(
+        self, task_id: UUID, user_id: UUID
+    ) -> TaskAssignee | None:
         query = select(TaskAssignee).where(
-            TaskAssignee.task_id == task.id, TaskAssignee.user_id == user.id
+            TaskAssignee.task_id == task_id, TaskAssignee.user_id == user_id
         )
 
         async with self.session() as ac:
             return (await ac.execute(query)).scalars().one_or_none()
+
+    async def add_task_assignee(self, task: Task, user_id: UUID) -> TaskAssignee:
+        previous_task_assignee = await self.get_task_assignee(task.id, user_id)
+
+        if previous_task_assignee:
+            return previous_task_assignee
+
+        async with self.session.begin() as ac:
+            # check if user is project member
+            participation_query = (
+                exists(ProjectParticipant)
+                .where(
+                    ProjectParticipant.project_id == task.project_id,
+                    ProjectParticipant.user_id == user_id,
+                    ProjectParticipant.participation_type
+                    == ProjectParticipationType.CONTRIBUTOR,
+                )
+                .select()
+            )
+            participation_exists = (await ac.execute(participation_query)).scalar()
+
+            if not participation_exists:
+                raise HTTPException(
+                    detail="Given user is not defined as contributor in this project.",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+
+            task_assignee = TaskAssignee(task.id, user_id)
+            ac.add(task_assignee)
+            await ac.flush()
+            await ac.refresh(task_assignee)
+
+            return task_assignee
+
+    async def delete_task_assignee(self, task: Task, user_id: UUID) -> None:
+        previous_task_assignee = await self.get_task_assignee(task.id, user_id)
+
+        if not previous_task_assignee:
+            raise HTTPException(
+                detail="Given user is not defined as contributor in this project.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        async with self.session.begin() as ac:
+            await ac.execute(
+                delete(TaskAssignee).where(
+                    TaskAssignee.task_id == task.id, TaskAssignee.user_id == user_id
+                )
+            )
+            await ac.flush()

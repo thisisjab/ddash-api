@@ -4,12 +4,14 @@ from uuid import UUID
 from fastapi import Depends, HTTPException, Path, status
 from fastapi.routing import APIRouter
 
+from api.orgs.permissions import OrganizationPermissionService
 from api.orgs.services import OrganizationService
 from api.projects.permissions import ProjectPermissionService
 from api.projects.services import ProjectService
 from api.tasks.models import Task
 from api.tasks.permissions import TaskPermissionService
 from api.tasks.schemas import (
+    TaskAssigneeCreateOrDeleteRequest,
     TaskCreateRequest,
     TaskPaginationItem,
     TaskSingleResponse,
@@ -218,3 +220,53 @@ async def set_task_state(
     setattr(task, "assignees", assignees)
 
     return task
+
+
+@router.post("/tasks/{task_id}/assignees", status_code=status.HTTP_204_NO_CONTENT)
+async def add_task_assignee(
+    body: TaskAssigneeCreateOrDeleteRequest,
+    task_id: Annotated[UUID, Path()],
+    permission_service: Annotated[OrganizationPermissionService, Depends()],
+    task_service: Annotated[TaskService, Depends()],
+    user: AuthenticatedUser,
+):
+    result = await task_service.get_task_with_project_and_organization_and_assignees(
+        task_id
+    )
+
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    task, _, _, organization = result
+    await check_permission(
+        permission_service.is_organization_manager,
+        organization=organization,
+        user=user,
+    )
+
+    await task_service.add_task_assignee(task, body.user_id)
+
+
+@router.delete("/tasks/{task_id}/assignees", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_task_assignee(
+    body: TaskAssigneeCreateOrDeleteRequest,
+    task_id: Annotated[UUID, Path()],
+    permission_service: Annotated[OrganizationPermissionService, Depends()],
+    task_service: Annotated[TaskService, Depends()],
+    user: AuthenticatedUser,
+):
+    result = await task_service.get_task_with_project_and_organization_and_assignees(
+        task_id
+    )
+
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    task, _, _, organization = result
+    await check_permission(
+        permission_service.is_organization_manager,
+        organization=organization,
+        user=user,
+    )
+
+    await task_service.delete_task_assignee(task, body.user_id)

@@ -24,7 +24,7 @@ class TaskPermissionService:
         if not (task and user):
             return False
 
-        task_assignee = await self.task_service.get_task_assignee(task, user)
+        task_assignee = await self.task_service.get_task_assignee(task.id, user.id)
 
         if task_assignee:
             return True
