@@ -1,12 +1,12 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from api.database.dependencies import AsyncSession
 from api.orgs.models import Organization
 from api.projects.models import Project
 from api.tasks.models import Task, TaskAssignee
-from api.tasks.schemas import TaskResponse
+from api.tasks.schemas import TaskPaginatioinItem
 from api.users.models import User
 from api.utils.pagination import PaginatedResponse, PaginationParams, paginate
 
@@ -17,7 +17,7 @@ class TaskService:
 
     async def get_tasks_for_project(
         self, project_id: UUID, pagination_params: PaginationParams
-    ) -> PaginatedResponse[TaskResponse]:
+    ) -> PaginatedResponse[TaskPaginatioinItem]:
         tasks_query = (
             select(Task)
             .where(Task.project_id == project_id)
@@ -57,7 +57,7 @@ class TaskService:
                     task_assignees.append(user)
 
             t.assignees = task_assignees
-            items.append(TaskResponse.model_validate(t))
+            items.append(TaskPaginatioinItem.model_validate(t))
 
         paginated_result["items"] = items
 
@@ -69,6 +69,23 @@ class TaskService:
             await ac.flush()
             await ac.refresh(task)
             return task
+
+    async def update_task(self, task: Task) -> Task:
+        async with self.session.begin() as ac:
+            ac.add(task)
+            await ac.flush()
+            await ac.refresh(task)
+            return task
+
+    async def delete_task_and_assignees(self, task_id: UUID) -> None:
+        task_assignees_delete_query = delete(TaskAssignee).where(
+            TaskAssignee.task_id == task_id
+        )
+        task_delete_query = delete(Task).where(Task.id == task_id)
+        async with self.session.begin() as ac:
+            await ac.execute(task_assignees_delete_query)
+            await ac.execute(task_delete_query)
+            await ac.flush()
 
     async def get_task_with_project_and_organization_and_assignees(
         self,
