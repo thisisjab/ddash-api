@@ -3,6 +3,8 @@ from uuid import UUID
 from sqlalchemy import select
 
 from api.database.dependencies import AsyncSession
+from api.orgs.models import Organization
+from api.projects.models import Project
 from api.tasks.models import Task, TaskAssignee
 from api.tasks.schemas import TaskResponse
 from api.users.models import User
@@ -67,3 +69,37 @@ class TaskService:
             await ac.flush()
             await ac.refresh(task)
             return task
+
+    async def get_task_with_project_and_organization_and_assignees(
+        self,
+        task_id: UUID,
+    ) -> tuple[Task, list[User], Project, Organization] | None:
+        task_query = (
+            select(Task, Project, Organization)
+            .select_from(Task)
+            .join(Project, Project.id == Task.project_id)
+            .join(Organization, Organization.id == Project.organization_id)
+            .where(Task.id == task_id)
+        )
+        assignees_query = (
+            select(TaskAssignee, User)
+            .select_from(TaskAssignee)
+            .join(User, User.id == TaskAssignee.user_id)
+            .where(TaskAssignee.task_id == task_id)
+            .order_by(TaskAssignee.created_at.desc())
+        )
+
+        async with self.session() as ac:
+            result = (await ac.execute(task_query)).one_or_none()
+
+            if not result:
+                return None
+
+            task: Task = result[0]
+            project: Project = result[1]
+            organization: Organization = result[2]
+
+            task_assignees_result = (await ac.execute(assignees_query)).all()
+            assignees: list[User] = [item[1] for item in task_assignees_result]
+
+            return task, assignees, project, organization
