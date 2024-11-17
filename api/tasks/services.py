@@ -120,3 +120,11 @@ class TaskService:
             assignees: list[User] = [item[1] for item in task_assignees_result]
 
             return task, assignees, project, organization
+
+    async def get_task_assignee(self, task: Task, user: User) -> TaskAssignee | None:
+        query = select(TaskAssignee).where(
+            TaskAssignee.task_id == task.id, TaskAssignee.user_id == user.id
+        )
+
+        async with self.session() as ac:
+            return (await ac.execute(query)).scalars().one_or_none()

@@ -8,6 +8,7 @@ from api.orgs.services import OrganizationService
 from api.projects.permissions import ProjectPermissionService
 from api.projects.services import ProjectService
 from api.tasks.models import Task
+from api.tasks.permissions import TaskPermissionService
 from api.tasks.schemas import (
     TaskCreateRequest,
     TaskPaginationItem,
@@ -190,7 +191,7 @@ async def delete_task(
 async def set_task_state(
     body: TaskStateUpdateRequest,
     task_id: Annotated[UUID, Path()],
-    permission_service: Annotated[ProjectPermissionService, Depends()],
+    permission_service: Annotated[TaskPermissionService, Depends()],
     task_service: Annotated[TaskService, Depends()],
     user: AuthenticatedUser,
 ):
@@ -201,11 +202,11 @@ async def set_task_state(
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    task, assignees, project, organization = result
+    task, assignees, _, organization = result
     await check_permission(
-        permission_service.is_project_contributor_or_organization_admin,
+        permission_service.is_task_assignee_or_organization_manager,
         organization=organization,
-        project=project,
+        task=task,
         user=user,
     )
 
