@@ -30,7 +30,7 @@ class OrganizationSendInvitationRequest(BaseModel):
 
 
 class OrganizationInvitationResponse(BaseModel):
-    organization_id: UUID
+    organization_name: str
     user_id: UUID
     accepted: bool | None
     created_at: datetime

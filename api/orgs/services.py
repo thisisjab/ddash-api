@@ -141,11 +141,31 @@ class OrganizationService:
     ) -> PaginatedResponse[OrganizationInvitationResponse]:
         """Get user's all invitations."""
 
-        query = select(OrganizationInvitation).where(
-            OrganizationInvitation.user_id == user_id,
-            OrganizationInvitation.accepted == None,  # noqa: E711
+        query = (
+            select(OrganizationInvitation, Organization)
+            .select_from(OrganizationInvitation)
+            .where(
+                OrganizationInvitation.user_id == user_id,
+                OrganizationInvitation.accepted == None,  # noqa: E711
+            )
+            .join(
+                Organization, OrganizationInvitation.organization_id == Organization.id
+            )
         )
-        return await paginate(query, self.session, pagination_params)
+
+        paginated_data = await paginate(
+            query, self.session, pagination_params, serialize_items=False
+        )
+        items: list[OrganizationInvitation, Organization] = []
+
+        for item in paginated_data["items"]:
+            invitation = item[0]
+            invitation.organization_name = item[1].name
+            items.append(OrganizationInvitationResponse.model_validate(invitation))
+
+        paginated_data["items"] = items
+
+        return paginated_data
 
     async def get_user_pending_invitation_with_organization_id(
         self, user_id: UUID, organization_id: UUID
