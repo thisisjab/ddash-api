@@ -28,7 +28,7 @@ class UserService:
             )
 
         hashed_password = self._hash_password(data.password)
-        user = User(email=data.email, password=hashed_password)
+        user = User(**data.model_dump(), password=hashed_password)
 
         async with self.session.begin() as ac:
             ac.add(user)

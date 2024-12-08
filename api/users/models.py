@@ -21,3 +21,7 @@ class User(BaseDatabaseModel, TimestampedModelMixin):
     email: Mapped[str] = mapped_column(types.String(255), unique=True, nullable=False)
 
     password: Mapped[str] = mapped_column(types.String(255), nullable=False)
+
+    first_name: Mapped[str] = mapped_column(types.String(255), nullable=False)
+    last_name: Mapped[str] = mapped_column(types.String(255), nullable=False)
+    display_name: Mapped[str] = mapped_column(types.String(255), nullable=True)
