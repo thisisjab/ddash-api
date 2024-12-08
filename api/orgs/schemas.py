@@ -30,7 +30,21 @@ class OrganizationSendInvitationRequest(BaseModel):
 
 
 class OrganizationInvitationResponse(BaseModel):
-    organization_name: str
+    class InvitorDetail(BaseModel):
+        first_name: str
+        last_name: str
+        display_name: str
+        email: str
+        model_config = ConfigDict(from_attributes=True)
+
+    class OrganizationDetail(BaseModel):
+        id: UUID
+        name: str
+        description: str
+        model_config = ConfigDict(from_attributes=True)
+
+    organization: OrganizationDetail
+    invitor: InvitorDetail
     user_id: UUID
     accepted: bool | None
     created_at: datetime

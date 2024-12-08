@@ -9,6 +9,7 @@ from api.orgs.schemas import (
     OrganizationInvitationResponse,
     OrganizationResponse,
 )
+from api.users.models import User
 from api.utils.pagination import PaginatedResponse, PaginationParams, paginate
 
 
@@ -142,7 +143,7 @@ class OrganizationService:
         """Get user's all invitations."""
 
         query = (
-            select(OrganizationInvitation, Organization)
+            select(OrganizationInvitation, Organization, User)
             .select_from(OrganizationInvitation)
             .where(
                 OrganizationInvitation.user_id == user_id,
@@ -151,6 +152,7 @@ class OrganizationService:
             .join(
                 Organization, OrganizationInvitation.organization_id == Organization.id
             )
+            .join(User, Organization.manager_id == User.id)
         )
 
         paginated_data = await paginate(
@@ -160,7 +162,14 @@ class OrganizationService:
 
         for item in paginated_data["items"]:
             invitation = item[0]
-            invitation.organization_name = item[1].name
+            invitation.organization = (
+                OrganizationInvitationResponse.OrganizationDetail.model_validate(
+                    item[1]
+                )
+            )
+            invitation.invitor = (
+                OrganizationInvitationResponse.InvitorDetail.model_validate(item[2])
+            )
             items.append(OrganizationInvitationResponse.model_validate(invitation))
 
         paginated_data["items"] = items
