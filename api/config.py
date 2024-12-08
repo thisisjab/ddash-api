@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     APP_DESCRIPTION: str = "API for DDash"
     APP_VERSION: str = "0.1.0"
 
+    # Cors
+    CORS_ALLOW_ORIGINS: list[str]
+    CORS_ALLOW_METHODS: list[str]
+    CORS_ALLOW_HEADERS: list[str]
+    CORS_ALLOW_CREDENTIALS: bool = True
+
     # Database
     DATABASE_ECHO: bool = False
     DATABASE_MAX_OVERFLOW: int = 1

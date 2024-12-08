@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import settings
 from api.logging import configure_logging
@@ -24,6 +25,13 @@ app = FastAPI(
     debug=settings.DEBUG,
     lifespan=lifespan,
     root_path="/api/v1",
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ALLOW_ORIGINS,
+    allow_methods=settings.CORS_ALLOW_METHODS,
+    allow_headers=settings.CORS_ALLOW_HEADERS,
+    allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
 )
 app.add_middleware(CorrelationIdMiddleware)
 
