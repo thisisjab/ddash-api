@@ -11,6 +11,7 @@ from api.orgs.schemas import (
     OrganizationResponse,
 )
 from api.users.models import User
+from api.users.services import UserService
 from api.utils.pagination import PaginatedResponse, PaginationParams, paginate
 
 
@@ -71,10 +72,34 @@ class OrganizationService:
                 OrganizationMembership.is_active == is_active
             )
 
+        # FIXME: DO NOT PANIC
+        # NOTE: Because of a tight deadline, I have to do this messy work to include manager itself in response.
+
+        users = []
+
+        if pagination_param.page == 1:
+            async with self.session() as ac:
+                organization_manager_id_query = select(Organization.manager_id).where(
+                    Organization.id == organization_id
+                )
+                organization_manager_id = (
+                    await ac.execute(organization_manager_id_query)
+                ).scalar()
+                _user_service = UserService(self.session)
+                organization_manager = await _user_service.get_user_by_id(
+                    organization_manager_id
+                )
+
+                organization_manager.metadata = (
+                    OrganizationMemberResponse.ResponseMetadata(
+                        is_active=True, is_manager=True
+                    )
+                )
+                users.append(organization_manager)
+
         paginated_data = await paginate(
             members_query, self.session, pagination_param, serialize_items=False
         )
-        users = []
 
         for item in paginated_data["items"]:
             user = item[1]
