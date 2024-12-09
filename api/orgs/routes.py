@@ -173,8 +173,7 @@ async def get_user_invitations(
 
 @router.post(
     "/users/me/organizations/invitations/{organization_id}",
-    status_code=status.HTTP_200_OK,
-    response_model=OrganizationInvitationResponse,
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 async def set_invitation_status(
     user: AuthenticatedUser,
@@ -191,4 +190,3 @@ async def set_invitation_status(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     await service.set_invitation_status(invitation, body.accepted)
-    return OrganizationInvitationResponse.model_validate(invitation)

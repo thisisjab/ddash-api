@@ -228,7 +228,7 @@ class OrganizationService:
 
     async def set_invitation_status(
         self, invitation: OrganizationInvitation, accepted: bool
-    ) -> OrganizationInvitation:
+    ) -> None:
         """Accept or reject an invitation. If accepted, create the corresponding membership record."""
         async with self.session.begin() as ac:
             invitation.accepted = accepted
@@ -240,5 +240,3 @@ class OrganizationService:
                 await self.add_member_to_organization(
                     invitation.organization_id, invitation.user_id
                 )
-
-        return invitation
