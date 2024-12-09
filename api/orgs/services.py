@@ -7,6 +7,7 @@ from api.database.dependencies import AsyncSession
 from api.orgs.models import Organization, OrganizationInvitation, OrganizationMembership
 from api.orgs.schemas import (
     OrganizationInvitationResponse,
+    OrganizationMemberResponse,
     OrganizationResponse,
 )
 from api.users.models import User
@@ -46,6 +47,45 @@ class OrganizationService:
         async with self.session() as ac:
             instance = await ac.execute(query)
             return instance.scalars().one_or_none()
+
+    async def get_organization_members(
+        self,
+        organization_id: UUID,
+        pagination_param: PaginationParams,
+        is_active: bool | None = None,
+    ) -> PaginatedResponse[OrganizationMemberResponse]:
+        members_query = (
+            select(OrganizationMembership, User)
+            .select_from(OrganizationMembership)
+            .outerjoin(
+                User,
+                User.id == OrganizationMembership.user_id,
+            )
+            .where(
+                OrganizationMembership.organization_id == organization_id,
+            )
+        )
+
+        if is_active:
+            members_query = members_query.where(
+                OrganizationMembership.is_active == is_active
+            )
+
+        paginated_data = await paginate(
+            members_query, self.session, pagination_param, serialize_items=False
+        )
+        users = []
+
+        for item in paginated_data["items"]:
+            user = item[1]
+            user.metadata = OrganizationMemberResponse.ResponseMetadata(
+                is_active=item[0].is_active, is_manager=False
+            )
+            users.append(user)
+
+        paginated_data["items"] = users
+
+        return paginated_data
 
     async def create_organization(self, organization: Organization) -> Organization:
         """Create organization for given user."""

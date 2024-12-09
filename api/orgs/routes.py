@@ -10,6 +10,7 @@ from api.orgs.schemas import (
     OrganizationCreateRequest,
     OrganizationInvitationResponse,
     OrganizationInvitationSetStatusRequest,
+    OrganizationMemberResponse,
     OrganizationPartialUpdateRequest,
     OrganizationResponse,
     OrganizationSendInvitationRequest,
@@ -122,6 +123,36 @@ async def delete_organization(
     )
 
     await service.delete_organization(organization.id)
+
+
+@router.get(
+    "/organizations/{organization_id}/members",
+    response_model=PaginatedResponse[OrganizationMemberResponse],
+    status_code=status.HTTP_200_OK,
+)
+async def get_organization_members(
+    pagination_params: Annotated[PaginationParams, Query()],
+    organization_id: Annotated[UUID, Path()],
+    permission_service: Annotated[OrganizationPermissionService, Depends()],
+    service: Annotated[OrganizationService, Depends()],
+    user: AuthenticatedUser,
+):
+    organization = await service.get_organization(organization_id)
+    if not organization:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    if permission_service.is_organization_manager(organization=organization, user=user):
+        return await service.get_organization_members(
+            organization.id, pagination_params
+        )
+
+    await check_permission(
+        permission_service.is_organization_member, organization=organization, user=user
+    )
+
+    return await service.get_organization_members(
+        organization.id, pagination_params, is_active=True
+    )
 
 
 @router.post(

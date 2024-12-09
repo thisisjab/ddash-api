@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from api.users.schemas import User
+
 
 class OrganizationCreateRequest(BaseModel):
     name: str = Field(max_length=75)
@@ -55,3 +57,14 @@ class OrganizationInvitationResponse(BaseModel):
 
 class OrganizationInvitationSetStatusRequest(BaseModel):
     accepted: bool
+
+
+class OrganizationMemberResponse(User):
+    class ResponseMetadata(BaseModel):
+        is_active: bool
+        is_manager: bool
+        model_config = ConfigDict(from_attributes=True)
+
+    metadata: ResponseMetadata
+
+    model_config = ConfigDict(from_attributes=True)
