@@ -217,7 +217,9 @@ class OrganizationService:
                 )
 
             membership = OrganizationMembership(
-                organization_id=organization_id, user_id=user_id
+                organization_id=organization_id,
+                user_id=user_id,
+                is_active=True,
             )
 
             ac.add(membership)

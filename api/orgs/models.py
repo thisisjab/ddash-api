@@ -40,6 +40,9 @@ class OrganizationMembership(BaseDatabaseModel, TimestampedModelMixin):
     user_id: Mapped[UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, nullable=False
     )
+    is_active: Mapped[bool] = mapped_column(
+        types.Boolean(), nullable=False, default=True
+    )
 
     __table_args__ = (PrimaryKeyConstraint("organization_id", "user_id"),)
 
