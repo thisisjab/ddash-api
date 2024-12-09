@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import Depends, status
 from fastapi.routing import APIRouter
 
+from api.users.auth.dependencies import AuthenticatedUser
 from api.users.schemas import (
     AccessTokenRequest,
     AccessTokenResponse,
@@ -28,6 +29,11 @@ async def create_single_user(
     data: UserRequest, service: Annotated[UserService, Depends()]
 ):
     return await service.create_user(data)
+
+
+@users_router.get("/me", response_model=UserResponse, status_code=status.HTTP_200_OK)
+async def get_user_self(user: AuthenticatedUser):
+    return user
 
 
 router = APIRouter()
