@@ -156,6 +156,54 @@ async def get_organization_members(
 
 
 @router.post(
+    "/organizations/{organization_id}/members/{member_id}/activate",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def activate_organization_member(
+    organization_id: Annotated[UUID, Path()],
+    member_id: Annotated[UUID, Path()],
+    service: Annotated[OrganizationService, Depends()],
+    permission_service: Annotated[OrganizationPermissionService, Depends()],
+    user: AuthenticatedUser,
+):
+    """Activate membership of a user."""
+    membership = await service.get_membership(organization_id, member_id)
+    if not membership:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    organization = await service.get_organization(organization_id)
+    await check_permission(
+        permission_service.is_organization_manager, organization=organization, user=user
+    )
+
+    await service.activate_organization_member(organization_id, member_id)
+
+
+@router.post(
+    "/organizations/{organization_id}/members/{member_id}/deactivate",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def deactivate_organization_member(
+    organization_id: Annotated[UUID, Path()],
+    member_id: Annotated[UUID, Path()],
+    service: Annotated[OrganizationService, Depends()],
+    permission_service: Annotated[OrganizationPermissionService, Depends()],
+    user: AuthenticatedUser,
+):
+    """Deactivate membership of a user."""
+    membership = await service.get_membership(organization_id, member_id)
+    if not membership:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    organization = await service.get_organization(organization_id)
+    await check_permission(
+        permission_service.is_organization_manager, organization=organization, user=user
+    )
+
+    await service.deactivate_organization_member(organization_id, member_id)
+
+
+@router.post(
     "/organizations/{organization_id}/invite/", status_code=status.HTTP_204_NO_CONTENT
 )
 async def invite_to_organization(

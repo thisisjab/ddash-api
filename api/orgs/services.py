@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import and_, delete, exists, or_, select
+from sqlalchemy import and_, delete, exists, or_, select, update
 
 from api.database.dependencies import AsyncSession
 from api.orgs.models import Organization, OrganizationInvitation, OrganizationMembership
@@ -307,3 +307,37 @@ class OrganizationService:
                 await self.add_member_to_organization(
                     invitation.organization_id, invitation.user_id
                 )
+
+    async def activate_organization_member(
+        self, organization_id: UUID, member_id: UUID
+    ) -> None:
+        """Set `is_active` of an organization membership to True."""
+        query = (
+            update(OrganizationMembership)
+            .where(
+                OrganizationMembership.organization_id == organization_id,
+                OrganizationMembership.user_id == member_id,
+            )
+            .values(is_active=True)
+        )
+
+        async with self.session.begin() as ac:
+            await ac.execute(query)
+            await ac.flush()
+
+    async def deactivate_organization_member(
+        self, organization_id: UUID, member_id: UUID
+    ) -> None:
+        """Set `is_active` of an organization membership to False."""
+        query = (
+            update(OrganizationMembership)
+            .where(
+                OrganizationMembership.organization_id == organization_id,
+                OrganizationMembership.user_id == member_id,
+            )
+            .values(is_active=False)
+        )
+
+        async with self.session.begin() as ac:
+            await ac.execute(query)
+            await ac.flush()
