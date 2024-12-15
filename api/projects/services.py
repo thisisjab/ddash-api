@@ -39,7 +39,7 @@ class ProjectService:
             select(ProjectParticipant, User)
             .select_from(ProjectParticipant)
             .join(User, User.id == ProjectParticipant.user_id)
-            .where(Project.id == project_id)
+            .where(ProjectParticipant.project_id == project_id)
         )
 
         paginated_result = await paginate(
