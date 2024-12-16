@@ -49,9 +49,15 @@ async def create_organization(
     service: Annotated[OrganizationService, Depends()],
 ):
     """Create an organization with manager set to current user."""
-    return await service.create_organization(
+    organization = await service.create_organization(
         Organization(**data.model_dump(), manager_id=user.id)
     )
+
+    # FIXME: This is not a good approach.
+    # Because of tight deadline, I have to stick with spaghetti code.
+    await service.add_member_to_organization(organization.id, user.id)
+
+    return organization
 
 
 @router.get(
@@ -176,6 +182,13 @@ async def activate_organization_member(
         permission_service.is_organization_manager, organization=organization, user=user
     )
 
+    # FIXME: Not a good place
+    if organization.manager_id == member_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot deactivate organization manager.",
+        )
+
     await service.activate_organization_member(organization_id, member_id)
 
 
@@ -199,6 +212,13 @@ async def deactivate_organization_member(
     await check_permission(
         permission_service.is_organization_manager, organization=organization, user=user
     )
+
+    # FIXME: Not a good place
+    if organization.manager_id == member_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot deactivate organization manager.",
+        )
 
     await service.deactivate_organization_member(organization_id, member_id)
 
