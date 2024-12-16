@@ -37,6 +37,7 @@ class OrganizationService:
                 )
             )
             .select_from(Organization)
+            .distinct()
         )
         return await paginate(query, self.session, pagination_params)
 
