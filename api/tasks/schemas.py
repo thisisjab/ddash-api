@@ -8,6 +8,9 @@ from api.tasks.enums import TaskState
 
 class TaskPaginationItemUser(BaseModel):
     id: UUID
+    first_name: str
+    last_name: str
+    display_name: str
     email: EmailStr
 
     model_config = ConfigDict(from_attributes=True)
