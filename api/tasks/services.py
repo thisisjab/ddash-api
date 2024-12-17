@@ -167,14 +167,6 @@ class TaskService:
             return task_assignee
 
     async def delete_task_assignee(self, task: Task, user_id: UUID) -> None:
-        previous_task_assignee = await self.get_task_assignee(task.id, user_id)
-
-        if not previous_task_assignee:
-            raise HTTPException(
-                detail="Given user is not defined as contributor in this project.",
-                status_code=status.HTTP_400_BAD_REQUEST,
-            )
-
         async with self.session.begin() as ac:
             await ac.execute(
                 delete(TaskAssignee).where(
