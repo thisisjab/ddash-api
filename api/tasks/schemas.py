@@ -10,7 +10,7 @@ class TaskPaginationItemUser(BaseModel):
     id: UUID
     first_name: str
     last_name: str
-    display_name: str
+    display_name: str | None = Field(None)
     email: EmailStr
 
     model_config = ConfigDict(from_attributes=True)
