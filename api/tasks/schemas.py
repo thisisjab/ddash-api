@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
@@ -115,7 +115,7 @@ class TaskUpdateRequest(BaseModel):
 
 class TaskStateUpdateRequest(BaseModel):
     state: TaskState
-    finish_date: datetime | None
+    finish_date: date | None
 
     @model_validator(mode="after")
     def validate_states(self):

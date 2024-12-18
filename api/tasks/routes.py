@@ -212,6 +212,13 @@ async def set_task_state(
         user=user,
     )
 
+    # FIXME: What the hell is this, you may shout. I know, it's just a tight deadline again.
+    if body.finish_date and task.start_date > body.finish_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Finish date must be after start date.",
+        )
+
     for k, v in body.model_dump().items():
         setattr(task, k, v)
 
